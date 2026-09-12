@@ -1,0 +1,32 @@
+{
+  "updated_at": "2026-09-12T16:52:09+08:00",
+  "kols": [
+    {
+      "name": "王小二",
+      "platform": "pumpfun",
+      "address": "BQ4KBzzXXk6ZMxVQb4mePuUbJfe85MerzYj53eatzUWd",
+      "profile_url": "https://pump.fun/profile/BQ4KBzzXXk6ZMxVQb4mePuUbJfe85MerzYj53eatzUWd?tab=activity",
+      "source": "imported_from_dashboard",
+      "synced_to_dashboard": true,
+      "created_at": "2026-09-12T16:52:08+08:00"
+    },
+    {
+      "name": "Ethermonk",
+      "platform": "fomo",
+      "address": "2xUbYAVq1oJGj45d6JjnaYHAke3NQecUcqWvvVbwmYw8",
+      "profile_url": "https://fomo.family/profile/ether_monk",
+      "source": "imported_from_dashboard",
+      "synced_to_dashboard": true,
+      "created_at": "2026-09-12T16:52:08+08:00"
+    },
+    {
+      "name": "镭射猫",
+      "platform": "fomo",
+      "address": "5dB6rj9CoXMLQCAymoC5UXCb1LtFjbM5rbut3MNuj9Q",
+      "profile_url": "https://fomo.family/profile/397397",
+      "source": "imported_from_dashboard",
+      "synced_to_dashboard": true,
+      "created_at": "2026-09-12T16:52:08+08:00"
+    }
+  ]
+}

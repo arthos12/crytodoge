@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CryptoDog 加密狗 · 合约与 MEME 跟单</title>
+<link rel="icon" href="/assets/cryptodog-logo.svg" type="image/svg+xml" />
+<style>
+  /* ===== 设计 token 直接抄仪表盘 Design System v2.1（docs/design-system.html），保证视觉一致 ===== */
+  :root, :root[data-theme="dark"] {
+    --bg-base: #0f1419; --bg-card: #1a2029; --bg-hover: #242833; --border: #2a3441;
+    --text-primary: #e6edf3; --text-secondary: #abbbc7; --text-dim: #8b98a5;
+    --accent-blue: #3b82f6; --accent-green: #22c55e; --accent-red: #ef4444;
+    --accent-purple: #a855f7; --accent-yellow: #eab308;
+    --accent-blue-bg: rgba(59,130,246,0.15); --accent-green-bg: rgba(34,197,94,0.20);
+    --accent-purple-bg: rgba(168,85,247,0.20); --accent-red-bg: rgba(239,68,68,0.15);
+    --accent-yellow-bg: rgba(234,179,8,0.15);
+    --grad-brand: linear-gradient(135deg,#3b82f6,#8b5cf6,#d946ef);
+    --grad-primary: linear-gradient(135deg,#3b82f6,#8b5cf6);
+    --up: var(--accent-red); --down: var(--accent-green);
+    --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px; --radius-xl: 12px;
+    --header-bg: rgba(15,20,25,0.85);
+  }
+  :root[data-theme="light"] {
+    --bg-base: #edf2f6; --bg-card: #ffffff; --bg-hover: #e9eef4; --border: #d5dce6;
+    --text-primary: #1a2029; --text-secondary: #5a728a; --text-dim: #728aa0;
+    --accent-blue: #3b82f6; --accent-green: #16a34a; --accent-red: #dc2626;
+    --accent-purple: #9333ea; --accent-yellow: #ca8a04;
+    --accent-blue-bg: rgba(59,130,246,0.12); --accent-green-bg: rgba(22,163,74,0.12);
+    --accent-purple-bg: rgba(147,51,234,0.12); --accent-red-bg: rgba(220,38,38,0.10);
+    --accent-yellow-bg: rgba(202,138,4,0.12);
+    --up: var(--accent-red); --down: var(--accent-green);
+    --header-bg: rgba(255,255,255,0.80);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',-apple-system,'SF Pro Display','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+         background:var(--bg-base); color:var(--text-primary); letter-spacing:-0.01em;
+         transition:background .3s ease, color .3s ease; -webkit-font-smoothing:antialiased; }
+  .mono { font-family:Consolas,'SF Mono',monospace; }
+  a { text-decoration:none; color:inherit; }
+  button { font-family:inherit; cursor:pointer; }
+  .dim { color:var(--text-dim); } .pos { color:var(--up); } .neg { color:var(--down); }
+  .r { text-align:right; } .c { text-align:center; }
+
+  /* ===== 顶部主导航 ===== */
+  .topnav { position:sticky; top:0; z-index:20; background:var(--header-bg); backdrop-filter:blur(10px);
+            border-bottom:1px solid var(--border); padding:0 28px; height:58px; display:flex; align-items:center; gap:30px; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo .mark { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
+  .logo .name { font-size:17px; font-weight:800; letter-spacing:.5px; background:var(--grad-brand);
+                -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .nav-item { font-size:15px; font-weight:600; color:var(--text-dim); padding:17px 4px; position:relative; cursor:pointer;
+              background:none; border:none; }
+  .nav-item.on { color:var(--text-primary); }
+  .nav-item.on::after { content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--grad-primary); border-radius:3px 3px 0 0; }
+  .nav-item .hint { font-size:10px; color:var(--text-dim); font-weight:400; display:block; letter-spacing:.5px; margin-top:1px; }
+  .nav-right { margin-left:auto; display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-secondary); }
+  .avatar-mini { width:28px; height:28px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; font-weight:700; }
+  .icon-btn { background:var(--bg-hover); border:1px solid var(--border); color:var(--text-secondary); border-radius:9px; padding:5px 10px; font-size:12px; }
+  .icon-btn:hover { color:var(--text-primary); border-color:var(--accent-blue); }
+
+  /* ===== 二级导航 ===== */
+  .subnav { display:flex; align-items:center; gap:6px; padding:12px 28px 0; flex-wrap:wrap; }
+  .sub-tab { padding:8px 18px; border-radius:10px 10px 0 0; font-size:13px; font-weight:600; color:var(--text-dim);
+             background:transparent; border:1px solid transparent; border-bottom:none; }
+  .sub-tab.on { color:var(--text-primary); background:var(--bg-card); border-color:var(--border); }
+  .sub-tab.sm { padding:4px 12px; border-radius:99px; border:1px solid var(--border); font-size:12px; }
+  .sub-tab.sm.on { background:var(--accent-blue-bg); border-color:var(--accent-blue); color:var(--accent-blue); }
+  .sub-note { margin-left:auto; font-size:11px; color:var(--text-dim); }
+
+  .page { max-width:1320px; margin:0 auto; padding:16px 28px 48px; }
+  .card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl); }
+  .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+  .stat { padding:14px; }
+  .stat .lb { font-size:10px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; }
+  .stat .vl { font-size:24px; font-weight:700; margin-top:2px; }
+  .stat .sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+
+  .tool-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .flt-label { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+  .pill { padding:5px 13px; border-radius:99px; border:1px solid var(--border); background:var(--bg-hover);
+          color:var(--text-secondary); font-size:12px; }
+  .pill.on { background:var(--accent-blue-bg); border-color:var(--accent-blue); color:var(--accent-blue); font-weight:600; }
+  .pill:disabled { opacity:.4; cursor:not-allowed; }
+
+  .thead, .trow { display:grid; align-items:center; padding:11px 14px; }
+  .thead { font-size:10px; letter-spacing:1px; color:var(--text-dim); background:var(--bg-hover);
+           border-bottom:1px solid var(--border); font-weight:600; }
+  .trow { font-size:14px; border-bottom:1px solid var(--border); }
+  .trow:hover { background:var(--bg-hover); }
+  .trow:last-of-type { border-bottom:none; }
+  .trow.warn { background:var(--accent-yellow-bg); }
+  .tbl-title { font-size:12px; color:var(--text-dim); padding:10px 14px; border-bottom:1px solid var(--border);
+               background:var(--bg-hover); letter-spacing:.5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ava { border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; flex-shrink:0; }
+  .badge { font-size:9px; font-weight:700; border-radius:4px; padding:2px 6px; white-space:nowrap; }
+  .badge.bn { background:rgba(245,158,11,.15); color:#f59e0b; }
+  .badge.ok { background:var(--accent-blue-bg); color:var(--accent-blue); }
+  .badge.pump { background:var(--accent-green-bg); color:var(--accent-green); }
+  .badge.fomo { background:var(--accent-purple-bg); color:var(--accent-purple); }
+  .badge.dim { background:var(--bg-hover); color:var(--text-dim); }
+
+  .dir { font-size:12px; font-weight:700; border-radius:6px; padding:3px 12px; border-width:1px; border-style:solid; white-space:nowrap; }
+  .dir.long { color:var(--up); border-color:var(--up); background:var(--accent-red-bg); }
+  .dir.short { color:var(--down); border-color:var(--down); background:var(--accent-green-bg); }
+
+  .btn-primary { background:var(--grad-primary); color:#fff; border-radius:8px; padding:5px 14px; font-size:12px; font-weight:600; border:none; }
+  .btn-ghost { background:var(--bg-hover); border:1px solid var(--border); color:var(--text-secondary); border-radius:8px; padding:5px 12px; font-size:12px; }
+  .btn-ghost:hover { color:var(--text-primary); }
+  .btn-danger { background:var(--bg-hover); border:1px solid var(--border); color:var(--text-secondary); border-radius:8px; padding:5px 12px; font-size:12px; }
+  .btn-danger.armed { color:#f43f5e; border-color:#f43f5e; }
+  .btn-ghost:disabled { opacity:.4; cursor:not-allowed; }
+
+  .kol-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
+  .kol-card { padding:15px; }
+  .kol-card .head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .kol-card .name { font-size:15px; font-weight:700; display:flex; align-items:center; gap:6px; }
+  .kol-card .roi { font-size:22px; font-weight:800; }
+  .kol-metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  .kol-metrics .lb { font-size:10px; color:var(--text-dim); }
+  .kol-metrics .vl { font-size:14px; font-weight:600; margin-top:1px; }
+  .kol-foot { margin-top:11px; padding-top:10px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; padding:14px; }
+  .form-grid label { font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px; }
+  .form-grid .full { grid-column:1/-1; }
+  .inp { width:100%; border:1px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13px;
+         background:var(--bg-hover); color:var(--text-primary); outline:none; }
+  .inp:focus { border-color:var(--accent-blue); }
+  .inp::placeholder { color:var(--text-dim); }
+  .switch { display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--text-secondary); cursor:pointer; user-select:none; }
+  .sw { width:34px; height:18px; border-radius:99px; background:var(--bg-hover); border:1px solid var(--border); position:relative; flex-shrink:0; transition:.15s; }
+  .sw::after { content:''; position:absolute; left:2px; top:2px; width:12px; height:12px; border-radius:50%; background:var(--text-dim); transition:.15s; }
+  .sw.on { background:var(--accent-blue-bg); border-color:var(--accent-blue); }
+  .sw.on::after { left:18px; background:var(--accent-blue); }
+  .sw.locked { opacity:.55; cursor:not-allowed; }
+
+  .legend { display:flex; gap:16px; padding:10px 14px; border-top:1px solid var(--border); font-size:11px; color:var(--text-dim); flex-wrap:wrap; }
+  .notice { padding:9px 14px; font-size:11.5px; border-top:1px solid var(--border); color:var(--text-dim); }
+  .notice.warn { background:var(--accent-yellow-bg); color:var(--accent-yellow); }
+  .notice.err { background:var(--accent-red-bg); color:var(--up); }
+  .empty { text-align:center; padding:36px 16px; font-size:13px; color:var(--text-dim); }
+
+  /* 地址待补态 */
+  .pending { display:inline-flex; align-items:center; gap:4px; font-size:11px; border-radius:99px; padding:2px 9px;
+             color:var(--accent-yellow); background:var(--accent-yellow-bg); border:1px solid rgba(234,179,8,.3); }
+  .copy-sticker { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:5px;
+                  background:var(--bg-hover); border:1px solid var(--border); font-size:9px; flex-shrink:0; }
+
+  /* 交易记录 v2 */
+  .group { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; margin-bottom:10px; }
+  .g-head { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg-hover); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .g-foot { display:flex; align-items:center; gap:16px; padding:9px 14px; background:var(--bg-hover); border-top:1px solid var(--border);
+            font-size:13px; color:var(--text-secondary); flex-wrap:wrap; }
+  .t-row { display:flex; align-items:center; gap:12px; padding:10px 14px 10px 17px; font-size:14px; border-bottom:1px solid var(--border); position:relative; }
+  .t-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+  .t-row.buy::before { background:var(--up); } .t-row.sell::before { background:var(--down); }
+  .t-row:last-of-type { border-bottom:none; }
+  .cat { border:1px dashed var(--border); border-radius:var(--radius-lg); padding:12px; }
+
+  .kpi3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+  .kpi6 { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; padding:12px 14px; text-align:center; }
+  .kpi-cell { border:1px solid var(--border); border-radius:9px; padding:9px 6px; background:var(--bg-base); }
+  .toast { position:fixed; right:22px; bottom:22px; z-index:50; display:flex; flex-direction:column; gap:8px; }
+  .toast > div { background:var(--bg-card); border:1px solid var(--border); border-left:3px solid var(--accent-blue);
+                 border-radius:var(--radius-lg); padding:10px 14px; font-size:12.5px; max-width:420px; box-shadow:0 8px 24px rgba(0,0,0,.28); }
+  .toast > div.ok { border-left-color:var(--accent-green); }
+  .toast > div.err { border-left-color:var(--up); }
+  .modal-mask { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:40; display:flex; align-items:flex-start; justify-content:center; padding:60px 16px; overflow:auto; }
+  .modal { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xl); width:min(680px,100%); }
+  @media (max-width:1100px) { .kol-grid,.stat-grid { grid-template-columns:repeat(2,1fr); } .kpi6 { grid-template-columns:repeat(3,1fr); } .kpi3 { grid-template-columns:1fr; } }
+  @media (max-width:700px) { .kol-grid,.stat-grid,.form-grid { grid-template-columns:1fr; } .topnav { gap:14px; padding:0 14px; } .page { padding:14px; } }
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部主导航 ===== -->
+<header class="topnav">
+  <div class="logo">
+    <div class="mark" id="logo-mark"></div>
+    <div class="name">CryptoDog</div>
+  </div>
+  <button class="nav-item on" id="nav-c" onclick="navTo('c')">合约<span class="hint">合约监控 · 合约跟单</span></button>
+  <button class="nav-item" id="nav-m" onclick="navTo('m')">MEME<span class="hint">KOL 资产 · 跟单</span></button>
+  <div class="nav-right">
+    <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="切换深色/浅色">🌙</button>
+    <button class="icon-btn" id="kill-btn" onclick="toggleKill()" title="全局熔断：一键停止所有跟单">🛑 熔断</button>
+    <span title="跟单推送确认入口（v1 未接入推送通道）">🔔</span>
+    <div class="avatar-mini">我</div>
+  </div>
+</header>
+
+<div class="subnav" id="subnav"></div>
+
+<main class="page" id="content">
+  <div class="empty">加载中…</div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   CryptoDog 加密狗跟单站 v1
+   - 独立新站（端口 8100），与投资仪表盘（8000）数据层共用、视觉一致
+   - 组件移植自仪表盘：平台徽章体系 / 地址待补两段式 / 📋 复制贴纸 / 交易记录 v2 配对视图
+   - v1 安全边界：无任何真实下单能力；自动跟单默认关；风控参数服务端强制
+   ========================================================================= */
+const API = '';
+const state = {
+  line: 'c',
+  view: 'futures/monitor',
+  theme: localStorage.getItem('cd-theme') || 'dark',
+  // 合约线
+  market: null, traders: null,
+  exchange: 'all', onlyCopyable: false,
+  // 跟单配置
+  copyModal: null, presetSaved: null,
+  // MEME 线
+  kols: [], assets: null,
+  kolFilter: 'all', sideFilter: 'all', tradesView: 'pair',
+  expanded: {},                 // 持仓行展开
+  editKol: null,
+  // 信号驱动（规格 §3.1b ②③④，2026-09-12 16:56 改版）
+  signals: null, signalsFor: null, signalsBusy: false,
+  holdingsOpen: false,          // 完整持仓明细默认收起
+};
+
+/* ---------------- 主题 ---------------- */
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const b = document.getElementById('theme-btn');
+  if (b) b.textContent = state.theme === 'dark' ? '🌙' : '☀️';
+}
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('cd-theme', state.theme);
+  applyTheme();
+}
+
+/* ---------------- 工具 ---------------- */
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = (v) => { const n = Number(v); return isNaN(n) ? null : n; };
+function fmtUsd(n) {
+  n = Number(n) || 0;
+  const a = Math.abs(n), sign = n < 0 ? '-' : '';
+  if (a >= 1e9) return sign + '$' + (a / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return sign + '$' + (a / 1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return sign + '$' + (a / 1e3).toFixed(1) + 'K';
+  return sign + '$' + a.toFixed(2);
+}
+const fmtSignedUsd = (n) => (n > 0 ? '+' : (n < 0 ? '-' : '')) + fmtUsd(Math.abs(Number(n) || 0));
+const fmtMcap = (n) => {
+  const v = Number(n);
+  if (!isFinite(v) || v <= 0) return '—';
+  if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return '$' + (v / 1e3).toFixed(1) + 'K';
+  return '$' + v.toFixed(0);
+};
+const fmtPct = (v, d = 2) => (v == null || isNaN(v)) ? '—' : (v > 0 ? '+' : '') + Number(v).toFixed(d) + '%';
+function fmtAmount(n) {
+  if (n == null || isNaN(n)) return '—';
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+  if (a >= 1) return n.toFixed(2);
+  return a === 0 ? '0' : Number(n).toPrecision(3);
+}
+const fmtPrice = (v) => (v == null || isNaN(v)) ? '—' : (Math.abs(v) >= 1000 ? Number(v).toLocaleString('en-US', { maximumFractionDigits: 1 }) : Number(v).toPrecision(5));
+function pnlCls(v) { return v > 0 ? 'pos' : (v < 0 ? 'neg' : 'dim'); }
+
+function toast(msg, kind = '') {
+  const box = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = kind;
+  el.innerHTML = msg;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.errors || ('HTTP ' + res.status));
+  return data;
+}
+
+/* ---------------- 平台标识体系（移植自仪表盘 KOL v2） ---------------- */
+const PLATFORM = {
+  pumpfun: { label: 'PUMP.FUN', short: 'PUMP', grad: 'linear-gradient(135deg,#22c55e,#0ea5e9)', badge: 'pump' },
+  fomo:    { label: 'FOMO',     short: 'FOMO', grad: 'linear-gradient(135deg,#a855f7,#6366f1)', badge: 'fomo' },
+};
+function platformBadge(p, small) {
+  const m = PLATFORM[p];
+  if (!m) return '';
+  return `<span class="badge ${m.badge}" style="${small ? 'font-size:8px;' : ''}">${m.label}</span>`;
+}
+const platformGrad = (p) => (PLATFORM[p] || {}).grad || 'var(--grad-primary)';
+const avatarText = (name) => { const n = String(name || '?'); return /[\u4e00-\u9fff]/.test(n) ? n.slice(0, 2) : n.slice(0, 3); };
+function ava(name, px, platform, logo) {
+  const fs = px >= 44 ? 15 : px >= 34 ? 12 : px >= 30 ? 11 : px >= 26 ? 10 : 9;
+  if (logo) {
+    const ini = esc(String(logo.initials || avatarText(name)));
+    return `<img src="${esc(logo.url)}" class="ava" style="width:${px}px;height:${px}px;" loading="lazy" referrerpolicy="no-referrer"
+      onerror="this.outerHTML='<div class=\\'ava\\' style=\\'width:${px}px;height:${px}px;font-size:${fs}px;background:${platformGrad(platform)};\\'>${ini}</div>'" />`;
+  }
+  return `<div class="ava" style="width:${px}px;height:${px}px;font-size:${fs}px;background:${platformGrad(platform)};">${esc(avatarText(name))}</div>`;
+}
+function tokenLogoHtml(logo, sym, cls) {
+  const ini = esc(String(sym || '?').replace(/[^A-Za-z0-9\u4e00-\u9fa5]/g, '').slice(0, 3) || '?');
+  const url = String(logo || '').trim();
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return `<div class="${cls}" style="background:var(--bg-hover);color:var(--text-secondary);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;">${ini}</div>`;
+  }
+  // 经本站 logo 代理（浏览器直连不到多数 CDN/IPFS）
+  const proxied = `${API}/api/logo?u=${encodeURIComponent(url)}`;
+  return `<img src="${esc(proxied)}" class="${cls}" loading="lazy" referrerpolicy="no-referrer"
+    onerror="this.outerHTML='<div class=\\'${cls}\\' style=\\'background:var(--bg-hover);color:var(--text-secondary);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;\\'>${ini}</div>'" />`;
+}
+const profileHandle = (u) => { const m = String(u || '').match(/profile\/([^/?#]+)/); return m ? m[1] : ''; };
+function shortAddr(a, n = 8) { const s = String(a || ''); return s.length > n + 6 ? s.slice(0, n) + '…' + s.slice(-6) : s; }
+
+function copyAddr(btn, addr) {
+  if (!addr) return;
+  const done = (ok) => {
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = ok ? '✓' : '✗';
+    setTimeout(() => { btn.textContent = old; }, 1200);
+  };
+  const fallback = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = addr; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta); done(ok);
+    } catch (e) { done(false); }
+  };
+  if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(addr).then(() => done(true)).catch(fallback);
+  } else fallback();
+}
+function copySticker(contract) {
+  if (!contract || String(contract).endsWith('-synthetic')) return '';
+  return `<button class="copy-sticker" title="复制合约地址：${esc(contract)}" onclick="event.stopPropagation(); copyAddr(this, '${esc(contract)}')">📋</button>`;
+}
+
+/* =========================================================================
+   路由
+   ========================================================================= */
+const LINES = {
+  c: [['futures/monitor', '📊 合约监控'], ['futures/copy', '📑 合约跟单']],
+  m: [['meme/assets', '💰 资产与交易'], ['meme/kol', '👤 KOL 管理'], ['meme/copy', '⚡ MEME 跟单']],
+};
+function navTo(line, view) {
+  state.line = line;
+  state.view = view || LINES[line][0][0];
+  location.hash = '#/' + state.view;
+  render();
+}
+function setView(view) {
+  state.view = view;
+  state.line = view.startsWith('futures') ? 'c' : 'm';
+  location.hash = '#/' + view;
+  render();
+}
+function syncFromHash() {
+  const h = (location.hash || '').replace(/^#\/?/, '');
+  const all = [...LINES.c, ...LINES.m].map(x => x[0]);
+  if (all.includes(h)) { state.view = h; state.line = h.startsWith('futures') ? 'c' : 'm'; }
+}
+
+const SUB_NOTE = {
+  c: '⚠ 跟单执行属高危操作：v1 默认推送确认，自动模式需单独开启且服务端强制风控',
+  m: '⚠ 自动跟单总开关默认关闭；跟单执行 v1 一律只记录不执行',
+};
+
+function renderSubnav() {
+  const tabs = LINES[state.line].map(([v, l]) =>
+    `<button class="sub-tab ${state.view === v ? 'on' : ''}" onclick="setView('${v}')">${l}</button>`).join('');
+  document.getElementById('subnav').innerHTML = tabs + `<span class="sub-note">${SUB_NOTE[state.line]}</span>`;
+}
+
+const RENDERERS = {
+  'futures/monitor': renderFuturesMonitor,
+  'futures/copy': renderFuturesCopy,
+  'meme/assets': renderMemeAssets,
+  'meme/kol': renderMemeKol,
+  'meme/copy': renderMemeCopy,
+};
+
+async function render() {
+  applyTheme();
+  document.getElementById('nav-c').classList.toggle('on', state.line === 'c');
+  document.getElementById('nav-m').classList.toggle('on', state.line === 'm');
+  renderSubnav();
+  await refreshKillBtn();
+  const el = document.getElementById('content');
+  el.innerHTML = '<div class="empty">加载中…</div>';
+  try {
+    await RENDERERS[state.view](el);
+  } catch (e) {
+    el.innerHTML = `<div class="card"><div class="empty">⚠ ${esc(e.message || e)}</div></div>`;
+  }
+}
+
+/* =========================================================================
+   合约线 · 合约监控
+   ========================================================================= */
+async function loadMarket(force) {
+  if (state.market && !force) return;
+  state.market = await api('/api/futures/market');
+}
+async function loadTraders(force) {
+  if (state.traders && !force) return;
+  state.traders = await api('/api/futures/traders');
+}
+
+function allPositions() {
+  const out = [];
+  for (const t of (state.traders && state.traders.traders) || []) {
+    for (const p of t.positions || []) out.push({ ...p, trader: t.name, trader_addr: t.address, trader_roi: t.roi_month });
+  }
+  return out;
+}
+
+async function renderFuturesMonitor(el) {
+  await Promise.all([loadMarket(), loadTraders()]);
+  const m = state.market || {}, t = state.traders || {};
+  const oi = m.oi || {}, fund = m.funding || {}, liq = m.liquidations || {}, stats = t.stats || {};
+  const positions = allPositions().filter(p => state.exchange === 'all' || state.exchange === 'hyperliquid');
+
+  const statCards = `
+  <div class="stat-grid">
+    <div class="stat card"><div class="lb">全网合约持仓 OI</div>
+      <div class="vl mono">${oi.total_usd ? fmtUsd(oi.total_usd) : '—'}</div>
+      <div class="sub"><span class="${pnlCls(oi.change_24h_pct)}">${fmtPct(oi.change_24h_pct)} 24h</span> · ${esc(oi.scope || '')}</div></div>
+    <div class="stat card"><div class="lb">监控 KOL 仓位</div>
+      <div class="vl mono">${stats.position_count || 0}</div>
+      <div class="sub">${stats.exchange_count || 0} 交易所 · ${stats.trader_count || 0} 位交易员</div></div>
+    <div class="stat card"><div class="lb">资金费率异常</div>
+      <div class="vl mono ${fund.abnormal_count ? 'neg' : ''}">${fund.abnormal_count || 0}</div>
+      <div class="sub">|rate| &gt; ${((fund.threshold || 0.001) * 100).toFixed(1)}% / 8h</div></div>
+    <div class="stat card"><div class="lb">24h 爆仓</div>
+      <div class="vl mono dim">${liq.available ? '—' : '未接通'}</div>
+      <div class="sub">${esc((liq.reason || '').slice(0, 46))}…</div></div>
+  </div>`;
+
+  const exChips = [['all', '全部'], ['hyperliquid', 'Hyperliquid']].map(([v, l]) =>
+    `<button class="pill ${state.exchange === v ? 'on' : ''}" onclick="state.exchange='${v}';render()">${l}</button>`).join('');
+  const toolRow = `
+  <div class="tool-row">
+    <span class="flt-label">交易所</span>${exChips}
+    <button class="pill ${state.onlyCopyable ? 'on' : ''}" onclick="state.onlyCopyable=!state.onlyCopyable;render()">只看可跟单</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-dim);">
+      更新：${esc((t.updated_at || '').replace('T', ' ').slice(5, 16))} · 30s 自动 ·
+      <button class="icon-btn" onclick="refreshFutures()" style="padding:2px 8px;">↻ 刷新</button></span>
+  </div>`;
+
+  let rows = positions;
+  if (state.onlyCopyable) rows = rows.filter(p => p.leverage && p.leverage <= 20);
+  const cols = '190px 74px 90px 64px 1fr 1fr 1fr 100px 96px 96px';
+  const body = rows.length ? rows.map(p => {
+    const warn = p.liq_warn;
+    const levOk = p.leverage && p.leverage <= 20;
+    return `
+    <div class="trow ${warn ? 'warn' : ''}" style="grid-template-columns:${cols};">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+        ${ava(p.trader, 26, null)}
+        <div style="min-width:0;">
+          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.trader)}</div>
+          <span class="badge ok" style="font-size:8px;">HYPERLIQUID</span>
+        </div>
+      </div>
+      <span class="c"><span class="dir ${p.side === 'long' ? 'long' : 'short'}">${p.side === 'long' ? '做多' : '做空'}</span></span>
+      <span style="font-weight:600;">${esc(p.coin)}</span>
+      <span class="c mono">${p.leverage || '—'}x</span>
+      <span class="r mono">${fmtUsd(p.position_value_usd)}</span>
+      <span class="r mono">${fmtPrice(p.entry_px)}</span>
+      <span class="r mono">${fmtPrice(p.mark_px)} <span class="dim">/ ${p.liquidation_px ? fmtPrice(p.liquidation_px) : '—'}</span>
+        ${p.liq_distance_pct != null ? `<div class="dim" style="font-size:10px;">距强平 ${p.liq_distance_pct.toFixed(1)}%</div>` : ''}</span>
+      <span class="r mono ${pnlCls(p.unrealized_pnl)}" style="font-size:15px;font-weight:700;">${fmtSignedUsd(p.unrealized_pnl)}
+        <div style="font-size:10px;">${fmtPct(p.roe_pct)}</div></span>
+      <span class="r dim" style="font-size:12px;">${p.open_time ? esc(p.open_time.replace('T', ' ').slice(5, 16)) : '—'}</span>
+      <span class="c">${levOk
+        ? `<button class="btn-primary" onclick="openCopyModal('${esc(p.trader)}')">跟单</button>`
+        : `<button class="btn-ghost" disabled title="杠杆 ${p.leverage}x 超过服务端上限 20x，按风控规则不可跟">不可跟</button>`}</span>
+    </div>`;
+  }).join('') : `<div class="empty">当前筛选下没有仓位。人工登记/降级说明见下方图例。</div>`;
+
+  el.innerHTML = statCards + toolRow + `
+  <div class="card">
+    <div class="tbl-title">KOL 合约仓位监控 · 数据源 Hyperliquid 公开 API（免 key）
+      <span style="margin-left:auto;color:var(--accent-blue);">跟单按钮直达配置</span></div>
+    <div class="thead" style="grid-template-columns:${cols};">
+      <span>交易员</span><span class="c">方向</span><span>币种</span><span class="c">杠杆</span>
+      <span class="r">仓位</span><span class="r">开仓价</span><span class="r">标记价 / 强平价</span>
+      <span class="r">盈亏 / ROI</span><span class="r">开仓时间</span><span class="c">操作</span>
+    </div>
+    ${body}
+    <div class="legend">
+      <span><b class="pos">红</b>=做多/盈利 · <b class="neg">绿</b>=做空/亏损</span>
+      <span>强平价距标记价 &lt; ${t.liq_warn_pct || 3}% 时该行黄底高亮（当前 ${stats.liq_warn_count || 0} 个）</span>
+      <span style="margin-left:auto;">杠杆 &gt; 20x 按服务端风控不可跟</span>
+    </div>
+    <div class="notice">口径说明：${esc((t.scope || ''))}。榜单不提供粉丝数，故以账户规模/成交额替代；开仓时间取自最近成交明细，取不到显示 —。</div>
+  </div>`;
+
+  if (state.autoTimer) clearInterval(state.autoTimer);
+  state.autoTimer = setInterval(() => { if (state.view === 'futures/monitor' && !state.copyModal) silentRefreshFutures(); }, 30000);
+}
+
+async function silentRefreshFutures() {
+  try {
+    await loadMarket(true); await loadTraders(true);
+    if (state.view === 'futures/monitor') { await renderSubnavSilent(); }
+  } catch (e) { /* 静默 */ }
+}
+async function renderSubnavSilent() {
+  const el = document.getElementById('content');
+  const keep = window.scrollY;
+  await renderFuturesMonitor(el);
+  window.scrollTo(0, keep);
+}
+async function refreshFutures() {
+  try {
+    await api('/api/futures/refresh?kind=market');
+    await api('/api/futures/refresh?kind=traders');
+    toast('已后台触发采集（币安 OI/资金费率 + Hyperliquid 榜单），约 30-90 秒后 ↻ 刷新', 'ok');
+  } catch (e) { toast('触发失败：' + esc(e.message), 'err'); }
+}
+
+/* =========================================================================
+   合约线 · 合约跟单
+   ========================================================================= */
+async function renderFuturesCopy(el) {
+  await loadTraders();
+  const t = state.traders || {}, list = t.traders || [];
+  const cards = list.length ? list.map(tr => `
+    <div class="card kol-card">
+      <div class="head">
+        ${ava(tr.name, 34, null)}
+        <div style="min-width:0;">
+          <div class="name">${esc(tr.name)} <span class="badge ok">HYPERLIQUID</span></div>
+          <div class="dim" style="font-size:11px;">账户 ${fmtUsd(tr.account_value)} · 30d 成交额 ${fmtUsd(tr.vlm_month)}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+        <span class="roi mono ${pnlCls(tr.roi_month * 100)}">${fmtPct(tr.roi_month * 100, 1)}</span>
+        <span class="dim" style="font-size:11px;">30d ROI</span></div>
+      <div class="kol-metrics">
+        <div><div class="lb">胜率</div><div class="vl mono">${tr.win_rate != null ? tr.win_rate.toFixed(0) + '%' : '—'}</div></div>
+        <div><div class="lb">最大回撤</div><div class="vl mono neg">${tr.max_drawdown_pct != null ? '-' + tr.max_drawdown_pct.toFixed(1) + '%' : '—'}</div></div>
+        <div><div class="lb">杠杆偏好</div><div class="vl mono">${esc(tr.leverage_pref || '—')}</div></div>
+      </div>
+      <div class="kol-foot"><span class="dim" style="font-size:11px;">当前持仓 ${tr.position_count} 个 · 胜率口径 closedPnl</span>
+        <button class="btn-primary" style="margin-left:auto;" onclick="openCopyModal('${esc(tr.name)}')">+ 跟单</button></div>
+    </div>`).join('') : `<div class="card"><div class="empty">暂无交易员数据，请先运行 collectors/futures_traders.py</div></div>`;
+
+  const log = await api('/api/copy/log');
+  const recs = (log.records || []).filter(r => r.kind === 'futures');
+  const logRows = recs.length ? recs.map(r => `
+    <div class="trow" style="grid-template-columns:120px 160px 1fr 90px 1fr 140px 90px;">
+      <span class="mono dim" style="font-size:12px;">${esc((r.time || '').replace('T', ' ').slice(5, 16))}</span>
+      <span>${esc(r.source || '—')}</span>
+      <span style="font-weight:600;">${esc(r.token || '—')}</span>
+      <span class="c"><span class="dir ${r.direction === 'sell' ? 'short' : 'long'}">${esc(r.direction || '—')}</span></span>
+      <span class="r mono" style="font-size:12px;">${esc(String(r.kol_amount || '—'))} → <b>${esc(String(r.copy_amount || '—'))}</b></span>
+      <span class="r" style="font-size:12px;color:var(--accent-yellow);">⛔ 未执行（v1 只读）</span>
+      <span class="r mono dim">—</span>
+    </div>`).join('') : `<div class="empty">还没有跟单请求记录。任何执行请求都会在此留痕（v1 全部为「未执行」）。</div>`;
+  const pre = await api('/api/copy/presets');
+  const saved = pre.futures;
+  const L = (pre.limits || {}).futures || {};
+  const field = (lb, val) => `<div><div class="dim" style="font-size:10px;">${lb}</div><div class="mono" style="font-size:13px;font-weight:600;">${esc(val)}</div></div>`;
+  // 面板始终展示全字段：有预设用预设，没有则展示服务端默认/上限（避免空态看不到字段集）
+  const p = saved || {
+    target: (list[0] && list[0].name) || '—', mode: 'fixed', order_usdt: 500,
+    max_leverage: L.max_leverage, max_symbol_usdt: L.max_symbol_usdt,
+    stop_loss_pct: -8, take_profit_mode: 'follow', confirm_before_execute: true, saved_at: null,
+  };
+  const panel = `
+  <div class="card">
+    <div class="tbl-title">跟单配置面板 · 全字段
+      <span style="margin-left:auto;color:var(--accent-yellow);">服务端硬风控：单笔 ≤ ${L.max_order_usdt} USDT · 杠杆 ≤ ${L.max_leverage}x · 单币最大持仓 ≤ ${L.max_symbol_usdt} USDT · 止损 ≥ ${L.min_stop_loss_pct}%</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px;">
+      ${field('跟单对象', p.target || '—')}
+      ${field('跟单模式', p.mode)}
+      ${field('单笔跟单金额 (USDT)', p.order_usdt)}
+      ${field('杠杆上限', p.max_leverage + 'x')}
+      ${field('单币最大持仓 (USDT)', p.max_symbol_usdt)}
+      ${field('止损线', p.stop_loss_pct + '%')}
+      ${field('止盈方式', p.take_profit_mode)}
+      ${field('执行前确认', p.confirm_before_execute ? '服务端强制开启' : '—')}
+      ${field('币种白名单', p.whitelist_only ? (p.whitelist || []).join('/') || 'BTC/ETH/SOL' : '不限')}
+    </div>
+    <div class="notice">自动执行：<b>服务端恒为关闭</b>（v1 无下单权限）。
+      ${p.saved_at ? `预设保存于 ${esc(String(p.saved_at).replace('T', ' ').slice(0, 16))}` : '当前显示的是服务端默认值，尚未保存预设'}
+      <button class="icon-btn" style="margin-left:10px;" onclick="openCopyModal('${esc(p.target && p.target !== '—' ? p.target : ((list[0] && list[0].name) || ''))}')">修改配置</button></div>
+  </div>`;
+
+  el.innerHTML = `
+  <div class="tbl-title card" style="margin-bottom:12px;">合约跟单 · 交易员榜单
+    <span style="margin-left:auto;font-size:11px;">按 30d ROI 排序 · 数据源 Hyperliquid 公开带单数据</span></div>
+  <div class="kol-grid">${cards}</div>
+
+  ${panel}
+
+  <div class="card" style="margin-top:12px;">
+    <div class="tbl-title">我的跟单 · 执行记录（触发 → 决策 → 结果 全链路留痕）</div>
+    <div class="thead" style="grid-template-columns:120px 160px 1fr 90px 1fr 140px 90px;">
+      <span>时间</span><span>触发来源</span><span>代币</span><span class="c">方向</span>
+      <span class="r">KOL 金额 → 跟单金额</span><span class="r">执行结果</span><span class="r">盈亏</span>
+    </div>
+    ${logRows}
+    <div class="notice warn">v1 只读安全边界：本站未接入任何交易所下单权限，所有执行请求一律拒绝并留痕；真实下单需你本人在交易所操作。</div>
+  </div>`;
+}
+
+function openCopyModal(trader) {
+  state.copyModal = { kind: 'futures', target: trader };
+  const L = (state.limits && state.limits.futures) || { max_order_usdt: 2000, max_leverage: 20, max_symbol_usdt: 5000, min_stop_loss_pct: -20 };
+  state.modalHtml = `
+  <div class="modal-mask" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="tbl-title">跟单配置 · ${esc(trader)} <span style="margin-left:auto;color:var(--accent-yellow);">服务端硬风控已生效</span></div>
+      <div class="form-grid">
+        <div><label>跟单模式</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="pill on" data-mode="fixed" onclick="pickPill(this,'mode')">固定金额</button>
+            <button class="pill" data-mode="ratio" onclick="pickPill(this,'mode')">比例跟单</button>
+            <button class="pill" data-mode="reverse" onclick="pickPill(this,'mode')">反向跟单</button>
+          </div></div>
+        <div><label>单笔跟单金额 (USDT) · 上限 ${L.max_order_usdt}</label>
+          <input class="inp mono" id="f-order" value="500" /></div>
+        <div><label>杠杆上限（超过则放弃该信号）· 上限 ${L.max_leverage}x</label>
+          <input class="inp mono" id="f-lev" value="20" /></div>
+        <div><label>单币最大持仓 (USDT) · 上限 ${L.max_symbol_usdt}</label>
+          <input class="inp mono" id="f-symbol" value="2000" /></div>
+        <div><label>止损线 (%) · 不得低于 ${L.min_stop_loss_pct}%</label>
+          <input class="inp mono" id="f-stop" value="-8" /></div>
+        <div><label>止盈方式</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="pill on" data-tp="follow" onclick="pickPill(this,'tp')">跟随平仓</button>
+            <button class="pill" data-tp="roi" onclick="pickPill(this,'tp')">固定 ROI 止盈</button>
+          </div></div>
+        <div class="full" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+          <span class="switch" onclick="toggleSw(this)"><span class="sw"></span>只跟指定币种（BTC/ETH/SOL）</span>
+          <span class="switch" title="v1 服务端强制：执行前必须人工确认"><span class="sw on locked"></span>执行前确认（服务端强制开启）</span>
+        </div>
+        <div class="full" style="display:flex;align-items:center;gap:10px;">
+          <span class="dim" style="font-size:11px;">自动执行在 v1 服务端恒为关闭</span>
+          <button class="btn-primary" style="margin-left:auto;padding:9px 26px;" onclick="savePreset('futures')">保存预设</button>
+          <button class="btn-ghost" onclick="closeModal()">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  mountModal();
+}
+function mountModal() {
+  const old = document.getElementById('modal-host');
+  if (old) old.remove();
+  const host = document.createElement('div');
+  host.id = 'modal-host';
+  host.innerHTML = state.modalHtml || '';
+  document.body.appendChild(host);
+}
+function closeModal() {
+  const h = document.getElementById('modal-host');
+  if (h) h.remove();
+  state.copyModal = null;
+}
+function pickPill(btn, group) {
+  const sib = btn.parentElement.querySelectorAll('.pill');
+  sib.forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function toggleSw(el) {
+  const sw = el.querySelector('.sw');
+  if (!sw || sw.classList.contains('locked')) return;
+  sw.classList.toggle('on');
+}
+
+async function savePreset(kind) {
+  const val = (id) => { const e = document.getElementById(id); return e ? e.value : null; };
+  let body;
+  if (kind === 'futures') {
+    const modeBtn = document.querySelector('[data-mode].on');
+    const tpBtn = document.querySelector('[data-tp].on');
+    body = {
+      kind: 'futures', target: state.copyModal && state.copyModal.target,
+      mode: modeBtn ? modeBtn.dataset.mode : 'fixed',
+      order_usdt: val('f-order'), max_leverage: val('f-lev'),
+      max_symbol_usdt: val('f-symbol'), stop_loss_pct: val('f-stop'),
+      take_profit_mode: tpBtn ? tpBtn.dataset.tp : 'follow',
+    };
+  } else {
+    const tpBtn = document.querySelector('[data-mtp].on');
+    body = {
+      kind: 'meme', target: val('m-target') || state.kolFilter,
+      order_sol: val('m-order'), daily_orders: val('m-orders'), daily_sol: val('m-daily'),
+      slippage_pct: val('m-slip'), stop_loss_pct: val('m-stop'),
+      take_profit_mode: tpBtn ? tpBtn.dataset.mtp : 'follow',
+      clear_on_kol_exit: true,
+      blacklist: (val('m-black') || '').split(',').map(s => s.trim()).filter(Boolean),
+    };
+  }
+  try {
+    const r = await api('/api/copy/preset', { method: 'POST', body });
+    const adj = (r.adjustments || []).map(a => `<li>${esc(a.msg)}</li>`).join('');
+    toast(`预设已保存（${esc(kind)}）${adj ? '<ul style="margin:6px 0 0 16px;">' + adj + '</ul>' : ''}`, 'ok');
+    closeModal();
+    if (kind === 'meme') render();
+  } catch (e) {
+    toast('保存失败：' + esc(e.message), 'err');
+  }
+}
+
+/* =========================================================================
+   MEME 线 · 资产与交易
+   ========================================================================= */
+async function loadKols(force) {
+  if (state.kols.length && !force) return;
+  const r = await api('/api/meme/kols');
+  state.kols = r.kols || [];
+  state.kolsDashErr = r.dashboard_error;
+}
+async function loadAssets(force) {
+  if (state.assets && !force) return;
+  state.assets = await api('/api/meme/assets');
+}
+
+/* =========================================================================
+   信号驱动（规格 §3.1b ②③④ · 2026-09-12 16:56 用户改版）
+   替代原「指标卡 + 概览卡」静态统计：改为
+     ② 🤖 AI 重点关注分析（置顶核心）
+     ③ 🔥 近期多次买入 / 💰 大额买入 / ⏳ 早期埋伏 三组信号表
+     ④ 完整持仓明细降级为次要卡、默认收起
+   三类信号与研判理由全部由后端基于真实交易流统计（signals.py）。
+   ========================================================================= */
+async function loadSignals(kol, force) {
+  if (!kol || kol === 'all') { state.signals = null; state.signalsFor = null; return; }
+  if (!force && state.signalsFor === kol && state.signals) return;
+  state.signalsFor = kol;
+  state.signals = null;
+  try {
+    state.signals = await api('/api/meme/signals?kol=' + encodeURIComponent(kol) + (force ? '&refresh=1' : ''));
+  } catch (e) {
+    state.signals = { error: e.message || '信号计算失败' };
+  }
+}
+
+async function refreshSignals() {
+  const kol = state.kolFilter;
+  if (!kol || kol === 'all' || state.signalsBusy) return;
+  state.signalsBusy = true;
+  render();
+  try {
+    await api('/api/meme/signals/refresh', { method: 'POST', body: { kol } });
+    await loadSignals(kol, true);
+    toast('已重新分析 ' + esc(kol) + ' 的信号', 'ok');
+  } catch (e) {
+    toast('重新分析失败：' + esc(e.message || ''), 'err');
+  }
+  state.signalsBusy = false;
+  render();
+}
+
+function sigAgo(iso) {
+  if (!iso) return '—';
+  const t = Date.parse(String(iso).replace(' ', 'T'));
+  if (isNaN(t)) return String(iso).slice(5, 16);
+  const d = (Date.now() - t) / 1000;
+  if (d < 3600) return Math.max(1, Math.round(d / 60)) + 'm 前';
+  if (d < 86400) return Math.round(d / 3600) + 'h 前';
+  return Math.round(d / 86400) + 'd 前';
+}
+
+const SIG_TIER = {
+  strong: { cls: 'badge fomo', style: 'background:var(--up);color:#fff;', label: '重点关注 · 强', bar: 'var(--up)' },
+  medium: { cls: 'badge', style: 'background:#f59e0b;color:#fff;', label: '重点关注 · 中', bar: '#f59e0b' },
+  watch:  { cls: 'badge dim', style: '', label: '观望', bar: 'var(--text-dim)' },
+};
+
+function tokenCell(sym, platform, contract, logo) {
+  return `<div style="display:flex;align-items:center;gap:7px;min-width:0;">
+    ${tokenLogoHtml(logo, sym, 'ava')}
+    <b style="font-size:14px;white-space:nowrap;">$${esc(sym || '?')}</b>
+    ${platformBadge(platform, true)}
+    ${copySticker(contract)}
+  </div>`;
+}
+
+function signalsHtml(kolName) {
+  if (!kolName || kolName === 'all') {
+    return `<div class="card" style="margin-bottom:12px;"><div class="empty">选择上方某个 KOL，查看 🤖 AI 重点关注分析与三类信号分组</div></div>`;
+  }
+  const s = state.signals;
+  if (!s) return `<div class="card" style="margin-bottom:12px;"><div class="empty">信号计算中…</div></div>`;
+  if (s.error) return `<div class="card" style="margin-bottom:12px;"><div class="notice err">${esc(s.error)}</div></div>`;
+
+  const wl = s.watchlist || [];
+  const sig = s.signals || {};
+  const scope = sig.data_scope || {};
+  const winDays = scope.window_days;
+  const scopeNote = scope.trades
+    ? `数据窗口 ${scope.trades} 笔 / ${winDays != null ? winDays + ' 天' : '—'}（${esc(String(scope.first_trade || '').slice(5, 10))}~${esc(String(scope.last_trade || '').slice(5, 10))}）`
+    : '暂无交易流';
+  const srcTag = s.source === 'rules+llm'
+    ? '<span class="badge ok">规则统计 + LLM 研判</span>'
+    : '<span class="badge dim">规则研判（未配置 LLM key）</span>';
+
+  // 空态要说明「为什么为空」：数据窗口不足 ≠ 真的没有
+  const emptyEarly = scope.can_judge_early === false
+    ? `采集窗口仅 ${winDays != null ? winDays : '—'} 天，不足判定「早期埋伏」（需 >${sig.config ? sig.config.early_days : 14} 天历史）。
+       仪表盘 tracker 目前每轮只抓最近 N 笔交易，扩深历史需在其采集侧增加分页回溯。`
+    : '没有符合条件的早期埋伏持仓';
+
+  // ② AI 重点关注分析
+  const watchRows = wl.length ? wl.map(w => {
+    const t = SIG_TIER[w.level] || SIG_TIER.watch;
+    return `<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-left:3px solid ${t.bar};border-radius:9px;padding:10px 12px;background:var(--bg-base);">
+      ${tokenLogoHtml(w.logo, w.symbol, 'ava')}
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <b style="font-size:14px;">$${esc(w.symbol || '?')}</b>
+          ${platformBadge(w.platform, true)}
+          <span class="${t.cls}" style="font-size:10px;font-weight:700;border-radius:5px;padding:1px 7px;${t.style}">${t.label}</span>
+          ${w.roi_pct != null ? `<span class="mono ${pnlCls(w.roi_pct)}" style="font-size:11px;">${fmtPct(w.roi_pct, 1)}</span>` : ''}
+          ${w.value_usd ? `<span class="dim mono" style="font-size:11px;">市值 ${fmtUsd(w.value_usd)}</span>` : ''}
+        </div>
+        <div class="dim" style="font-size:12px;line-height:1.55;margin-top:4px;">${esc(w.reason)}</div>
+        <div class="dim" style="font-size:11px;margin-top:3px;">⚠ ${esc(w.advice)}</div>
+      </div>
+      <button class="btn-primary" style="padding:5px 12px;font-size:11px;flex-shrink:0;"
+        onclick="gotoMemeCopy('${esc(kolName)}')">⚡ 跟单</button>
+    </div>`;
+  }).join('') : `<div class="empty">该 KOL 暂无可研判的代币（交易流为空或全部无买入记录）</div>`;
+
+  const aiCard = `
+  <div class="card" style="margin-bottom:12px;border:1px solid rgba(99,102,241,.45);">
+    <div class="tbl-title">🤖 AI 重点关注分析
+      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">
+        基于全部交易流自动统计 · ${esc(String(s.generated_at || '').replace('T', ' ').slice(5, 16))} 生成 · 共 ${s.watchlist_total || wl.length} 个有买入记录的代币</span>
+      <span style="margin-left:8px;">${srcTag}</span>
+      <button class="btn-ghost" style="margin-left:auto;padding:3px 12px;font-size:11px;"
+        onclick="refreshSignals()" ${state.signalsBusy ? 'disabled' : ''}>${state.signalsBusy ? '⏳ 分析中…' : '↻ 重新分析'}</button>
+    </div>
+    <div style="padding:12px 14px;display:grid;gap:10px;">${watchRows}</div>
+    <div class="legend"><span>研判 = 规则统计（可解释，理由均引用具体数字）${s.llm ? ' + LLM 综合研判' : ''}</span>
+      <span>${scopeNote}${scope.can_judge_early === false ? ' · ⚠ 窗口 < 早期埋伏阈值' : ''}</span>
+      <span style="margin-left:auto;">分级：🔥 强 / 👀 中 / ⚪ 观望</span></div>
+  </div>`;
+
+  // ③ 三组信号表
+  const rep = sig.repeat_buys || [], big = sig.large_buys || [], early = sig.early_positions || [];
+  const head = (cols, cells) => `<div class="thead" style="grid-template-columns:${cols};">${cells}</div>`;
+
+  const repeatCard = `
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">🔥 近期多次买入（加仓中 · 近 ${sig.config ? sig.config.repeat_days : 7} 天 ≥2 笔）
+      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">按加仓金额排序</span>
+      <span style="margin-left:auto;font-size:11px;">${rep.length} 个代币</span></div>
+    ${head('1.3fr .7fr .8fr .8fr .7fr .8fr', '<span>代币</span><span class="r">买入笔数</span><span class="r">近 7 日买入</span><span class="r">建仓总额</span><span class="r">浮盈</span><span class="r">最近买入</span>')}
+    ${rep.length ? rep.map(r => `<div class="trow" style="grid-template-columns:1.3fr .7fr .8fr .8fr .7fr .8fr;">
+        ${tokenCell(r.symbol, r.platform, r.contract, r.logo)}
+        <span class="r mono pos" style="font-weight:700;">${r.recent_buy_count} 笔 ↑</span>
+        <span class="r mono" style="font-weight:700;">${fmtUsd(r.recent_buy_usd)}</span>
+        <span class="r mono">${fmtUsd(r.total_buy_usd)}</span>
+        <span class="r mono ${pnlCls(r.roi_pct)}">${r.roi_pct != null ? fmtPct(r.roi_pct, 1) : '—'}</span>
+        <span class="r mono dim" style="font-size:12px;">${sigAgo(r.recent_last_time)}</span>
+      </div>`).join('') : '<div class="empty">近期没有同币多次买入</div>'}
+  </div>`;
+
+  const largeCard = `
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">💰 大额买入（单笔 ≥ $${(sig.config ? sig.config.large_usd_floor : 5000).toLocaleString()} 或 ≥ 均单 ${sig.config ? sig.config.large_multiple : 3} 倍）
+      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">阈值可在 data/signal_config.json 调整</span>
+      <span style="margin-left:auto;font-size:11px;">${big.length} 笔</span></div>
+    ${head('1.3fr .8fr .8fr 1fr .8fr', '<span>代币</span><span class="r">单笔金额</span><span class="r">vs 均单</span><span class="r">时点 · 当时市值</span><span class="r">当前浮盈</span>')}
+    ${big.length ? big.map(b => `<div class="trow" style="grid-template-columns:1.3fr .8fr .8fr 1fr .8fr;">
+        ${tokenCell(b.symbol, b.platform, b.contract, b.logo)}
+        <span class="r mono pos" style="font-weight:700;">${fmtUsd(b.single_usd)}</span>
+        <span class="r mono">${b.multiple_vs_avg != null ? b.multiple_vs_avg + '×' : '—'}</span>
+        <span class="r mono dim" style="font-size:12px;">${esc(String(b.time || '').replace('T', ' ').slice(5, 10))}${b.mcap_at_time ? ' · ' + fmtMcap(b.mcap_at_time) : ''}</span>
+        <span class="r mono ${pnlCls(b.roi_pct)}">${b.roi_pct != null ? fmtPct(b.roi_pct, 1) : '—'}</span>
+      </div>`).join('') : '<div class="empty">没有达到大额阈值的单笔买入</div>'}
+  </div>`;
+
+  const earlyCard = `
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">⏳ 早期埋伏（首买 > ${sig.config ? sig.config.early_days : 14} 天 · 仍未明显减仓）
+      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">按持有天数排序</span>
+      <span style="margin-left:auto;font-size:11px;">${early.length} 个代币</span></div>
+    ${head('1.3fr .7fr .8fr .8fr .9fr', '<span>代币</span><span class="r">持有天数</span><span class="r">累计买入</span><span class="r">已卖出占比</span><span class="r">当前浮盈</span>')}
+    ${early.length ? early.map(e => `<div class="trow" style="grid-template-columns:1.3fr .7fr .8fr .8fr .9fr;">
+        ${tokenCell(e.symbol, e.platform, e.contract, e.logo)}
+        <span class="r mono" style="font-weight:700;">${e.hold_days} 天</span>
+        <span class="r mono">${fmtUsd(e.total_buy_usd)}</span>
+        <span class="r mono" style="color:${e.take_profit ? '#f59e0b' : 'inherit'};">${e.sold_pct}%${e.take_profit ? '（止盈中）' : ''}</span>
+        <span class="r mono ${pnlCls(e.roi_pct)}">${e.roi_pct != null ? fmtPct(e.roi_pct, 1) : '—'}</span>
+      </div>`).join('') : `<div class="empty">${emptyEarly}</div>`}
+  </div>`;
+
+  return aiCard + repeatCard + largeCard + earlyCard;
+}
+async function renderMemeAssets(el) {
+  await Promise.all([loadKols(), loadAssets()]);
+  const a = state.assets || {}, kols = (a.kols || []);
+  const trades = a.trades || [];
+  const name = state.kolFilter === 'all' ? null : state.kolFilter;
+  const kol = name ? kols.find(k => k.wallet === name) : null;
+  const regKol = name ? state.kols.find(k => k.name === name) : null;
+  const platform = (regKol && regKol.platform) || (kol && kol.platform);
+  const pendingAddr = regKol && regKol.has_address === false;
+
+  if (state.kolFilter !== 'all' && !kols.find(k => k.wallet === state.kolFilter) && !regKol) {
+    state.kolFilter = 'all';
+  }
+  // 信号驱动：选中单个 KOL 时拉取其信号统计与研判（规格 §3.1b）
+  await loadSignals(state.kolFilter === 'all' ? null : state.kolFilter);
+
+  // 筛选 chips
+  const chip = (active, label, onclick) => `<button class="sub-tab sm ${active ? 'on' : ''}" onclick="${onclick}">${label}</button>`;
+  const kolChips = [['all', '全部']].concat(kols.map(k => [k.wallet, k.wallet]))
+    .map(([v, l]) => chip(state.kolFilter === v, esc(l), `state.kolFilter='${esc(v)}';state.expanded={};render()`)).join('');
+  const sideChips = [['all', '全部'], ['buy', '买入'], ['sell', '卖出']]
+    .map(([v, l]) => chip(state.sideFilter === v, l, `state.sideFilter='${v}';render()`)).join('');
+
+  // 说明（2026-09-12 16:56 用户改版）：原「指标卡(当前持仓/累计买入/最早买入)」与
+  // 「概览卡(kpi6)」已废弃 —— 用户明确这类静态统计"没有必要"，改为信号驱动结构
+  // （见 signalsHtml()：AI 重点关注 + 三类信号分组），静态摘要只保留 kolHeader 一处。
+
+  const kolHeader = kol ? `
+  <div class="card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;margin-bottom:12px;flex-wrap:wrap;">
+    ${ava(kol.wallet, 44, platform)}
+    <div>
+      <div style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:7px;">${esc(kol.wallet)} ${platformBadge(platform)}</div>
+      <div class="dim mono" style="font-size:11px;">${kol.address
+        ? `${esc(shortAddr(kol.address))} <a href="https://solscan.io/account/${esc(kol.address)}" target="_blank" style="color:var(--accent-blue);">↗ solscan</a>`
+        : `<span class="pending">地址待补</span> <span style="font-size:11px;">主页已登记</span>`}</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:26px;text-align:right;align-items:center;flex-wrap:wrap;">
+      <div><div class="dim" style="font-size:11px;">现金</div><div class="mono" style="font-size:16px;font-weight:700;">${fmtUsd(kol.stable_usd)}</div></div>
+      <div><div class="dim" style="font-size:11px;">总盈亏</div>
+        <div class="mono ${pnlCls(kol.pnl_usd)}" style="font-size:16px;font-weight:700;">${fmtSignedUsd(kol.pnl_usd)}
+          <span style="font-size:12px;">(${fmtPct(kol.roi_pct, 1)})</span></div></div>
+      <button class="btn-primary" style="padding:7px 16px;" onclick="gotoMemeCopy('${esc(kol.wallet)}')">⚡ 跟单此人</button>
+    </div>
+  </div>` : '';
+
+  const overview = '';   // 概览卡已废弃（2026-09-12 16:56 用户改版：静态统计没必要）
+
+  // 持仓代币表
+  const posRows = (a.positions || []).filter(p => !name || p.wallet === name).slice(0, 120);
+  const posHtml = posRows.length ? posRows.map(p => {
+    const key = p.wallet + '|' + (p.contract || p.symbol);
+    const open = !!state.expanded[key];
+    const hist = trades.filter(t => t.wallet === p.wallet && (t.contract || t.symbol) === (p.contract || p.symbol)).slice(0, 8);
+    return `
+    <div class="trow" style="grid-template-columns:1.4fr .8fr .8fr .8fr .9fr .8fr;cursor:pointer;" onclick="state.expanded['${esc(key)}']=!state.expanded['${esc(key)}'];render()">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0;">
+        ${tokenLogoHtml(p.logo, p.symbol, 'ava')}
+        <b style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">$${esc(p.symbol || p.name || '?')}</b>
+        ${platformBadge(p.platform, true)}
+        ${copySticker(p.contract)}
+      </div>
+      <span class="r mono">${fmtAmount(p.balance)}</span>
+      <span class="r mono">${p.buy_usd_known === false ? '—' : fmtUsd(p.buy_usd)}</span>
+      <span class="r mono">${fmtUsd(p.value_usd)}</span>
+      <span class="r mono ${pnlCls(p.pnl_usd)}">${fmtSignedUsd(p.pnl_usd)} / ${fmtPct(p.roi_pct, 1)}</span>
+      <span class="r mono dim" style="font-size:12px;">${p.first_buy_time ? esc(String(p.first_buy_time).slice(5, 10)) : '—'}</span>
+    </div>
+    ${open ? `<div style="border-top:1px dashed var(--border);padding:9px 14px;background:var(--bg-base);">
+      <div class="dim" style="font-size:11px;font-weight:600;letter-spacing:.06em;margin-bottom:5px;">
+        交易历史 · ${esc(p.symbol || '')}（${hist.length} 笔 · 买 ${p.buy_count || 0} / 卖 ${p.sell_count || 0}）</div>
+      ${hist.length ? hist.map(x => `<div class="dim mono" style="font-size:12px;display:grid;grid-template-columns:.9fr .5fr 1fr .8fr 1fr;gap:4px;margin-top:3px;">
+        <span>${esc(String(x.time || '').replace('T', ' ').slice(5, 16))}</span>
+        <span class="${x.side === 'buy' ? 'pos' : (x.side === 'sell' ? 'neg' : '')}">${x.side === 'buy' ? '买入' : x.side === 'sell' ? '卖出' : x.side === 'in' ? '转入' : x.side === 'out' ? '转出' : '—'}</span>
+        <span>${x.usd != null ? fmtUsd(x.usd) : (x.price_usd != null && x.amount != null ? '≈' + fmtUsd(Math.abs(x.price_usd * x.amount)) : '—')}</span>
+        <span>${fmtAmount(x.amount != null ? Math.abs(x.amount) : null)} 枚</span>
+        <a href="${esc(x.explorer_url || '#')}" target="_blank" style="color:var(--accent-blue);" onclick="event.stopPropagation();">${esc(String(x.hash || '').slice(0, 8))}… ↗</a>
+      </div>`).join('') : '<div class="dim" style="font-size:12px;">最近流水窗口内无该代币记录</div>'}
+    </div>` : ''}`;
+  }).join('') : `<div class="empty">没有持仓数据${a.dashboard_error ? '：' + esc(a.dashboard_error) : ''}</div>`;
+
+  el.innerHTML = `
+  <div class="card" style="display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;">
+    <span class="dim" style="font-size:11px;">KOL：</span>${kolChips}
+    <span class="dim" style="font-size:11px;margin-left:14px;">方向：</span>${sideChips}
+    <button class="sub-tab sm" style="margin-left:auto;" onclick="setView('meme/kol')">👤 管理 KOL（增删改）→</button>
+  </div>
+  ${pendingAddr ? `<div class="card"><div class="notice warn">${esc(name)} 已登记 FOMO 主页（${esc(profileHandle((regKol || {}).profile_url) || '—')}），等待 Solana 地址补填后开始链上采集。<button class="icon-btn" style="margin-left:8px;" onclick="setView('meme/kol')">去补地址</button></div></div>` : ''}
+  ${kolHeader}${signalsHtml(state.kolFilter === 'all' ? null : state.kolFilter)}
+  <div class="card">
+    <div class="tbl-title" style="cursor:pointer;" onclick="state.holdingsOpen=!state.holdingsOpen;render()">
+      <span style="transition:transform .15s;display:inline-block;transform:rotate(${state.holdingsOpen ? 90 : 0}deg);">▶</span>
+      完整持仓明细
+      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">次要信息 · 默认收起（${(a.positions || []).filter(p => !name || p.wallet === name).length} 行）</span>
+      <span style="margin-left:auto;font-size:11px;">配色/字号与仪表盘「加密货币 · 追踪」一致（Design System v2.1）</span>
+    </div>
+    ${state.holdingsOpen ? `
+    <div class="thead" style="grid-template-columns:1.4fr .8fr .8fr .8fr .9fr .8fr;">
+      <span>代币 / 合约</span><span class="r">数量</span><span class="r">成本</span><span class="r">市值</span><span class="r">盈亏 / ROI</span><span class="r">首次买入</span>
+    </div>
+    ${posHtml}
+    <div class="legend"><span>💰 现金 = 稳定币余额</span><span>📋 复制合约地址</span>
+      <span style="margin-left:auto;">⚡ 跟单此人 = 快捷创建 MEME 跟单预设</span></div>` : ''}
+  </div>
+  ${renderTradesV2(trades, name, kol)}`;
+}
+
+/* ---- 交易记录 v2（买卖配对 · 移植自仪表盘）---- */
+function tradeUsdOf(x) {
+  if (x.usd != null && !isNaN(Number(x.usd))) return { v: Math.abs(Number(x.usd)), est: false };
+  if (x.price_usd != null && x.amount != null) {
+    const v = Math.abs(Number(x.price_usd) * Number(x.amount));
+    if (!isNaN(v)) return { v, est: true };
+  }
+  return null;
+}
+const tradeQtyOf = (x) => { const q = Number(x.amount); return isNaN(q) ? 0 : Math.abs(q); };
+function tradeTimeText(t) {
+  const m = String(t || '').match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : (String(t || '').slice(5, 16) || '—');
+}
+function tradeSideChip(side) {
+  if (side === 'buy') return '<span class="dir long" style="font-size:12px;padding:2px 10px;">买入</span>';
+  if (side === 'sell') return '<span class="dir short" style="font-size:12px;padding:2px 10px;">卖出</span>';
+  const l = side === 'in' ? '转入' : (side === 'out' ? '转出' : '·');
+  return `<span class="badge dim" style="font-size:12px;padding:3px 10px;">${l}</span>`;
+}
+function buildTradePairs(rows) {
+  const map = new Map();
+  rows.forEach(x => {
+    const isStable = x.contract && String(x.contract).endsWith('-synthetic');
+    if ((x.side !== 'buy' && x.side !== 'sell') || isStable) return;
+    const key = x.contract || x.symbol || x.token || '?';
+    if (!map.has(key)) map.set(key, { key, symbol: x.symbol || x.token || '?', name: x.token || '', contract: x.contract || '', mcap: null, kols: [], buys: [], sells: [] });
+    const g = map.get(key);
+    if (x.wallet && g.kols.indexOf(x.wallet) < 0) g.kols.push(x.wallet);
+    if (g.mcap == null && x.mcap) g.mcap = x.mcap;
+    (x.side === 'buy' ? g.buys : g.sells).push(x);
+  });
+  const sum = (arr) => arr.reduce((s, x) => { const u = tradeUsdOf(x); return s + (u ? u.v : 0); }, 0);
+  const hasEst = (arr) => arr.some(x => { const u = tradeUsdOf(x); return u && u.est; });
+  return [...map.values()].map(g => {
+    const buyQty = g.buys.reduce((s, x) => s + tradeQtyOf(x), 0);
+    const sellQty = g.sells.reduce((s, x) => s + tradeQtyOf(x), 0);
+    // 已实现盈亏只在「双腿都有真实成交额」时计算：price_usd 是最新市价（非成交价），
+    // 用它估算会得出恒等于 ≈0 的假盈亏 —— 宁可显示 —（与仪表盘 v2 同口径）
+    let pxUsd = 0, pxQty = 0, realSellUsd = 0, realSellQty = 0;
+    g.buys.forEach(x => { const u = tradeUsdOf(x); const q = tradeQtyOf(x); if (u && !u.est && q > 0) { pxUsd += u.v; pxQty += q; } });
+    g.sells.forEach(x => { const u = tradeUsdOf(x); const q = tradeQtyOf(x); if (u && !u.est && q > 0) { realSellUsd += u.v; realSellQty += q; } });
+    const avgPx = pxQty > 0 ? pxUsd / pxQty : null;
+    const realized = (avgPx != null && realSellQty > 0 && realSellUsd > 0) ? realSellUsd - realSellQty * avgPx : null;
+    const lastTs = g.buys.concat(g.sells).reduce((m, x) => Math.max(m, Date.parse(x.time) || 0), 0);
+    return { ...g, buyQty, sellQty, buyUsd: sum(g.buys), sellUsd: sum(g.sells), buyEst: hasEst(g.buys), sellEst: hasEst(g.sells), realized, remain: buyQty - sellQty, lastTs };
+  }).sort((a, b) => b.lastTs - a.lastTs);
+}
+function renderTradesV2(trades, kolName, kol) {
+  const scoped = trades.filter(x => !kolName || x.wallet === kolName);
+  const side = state.sideFilter;
+  const view = state.tradesView;
+  const buyCnt = scoped.filter(x => x.side === 'buy').length;
+  const sellCnt = scoped.filter(x => x.side === 'sell').length;
+  const usdSum = scoped.reduce((s, x) => s + (x.usd != null ? Number(x.usd) : 0), 0);
+  const tokenCount = new Set(scoped.map(x => x.contract || x.symbol).filter(Boolean)).size;
+  const chip = (active, label, onclick) => `<button class="sub-tab sm ${active ? 'on' : ''}" onclick="${onclick}">${label}</button>`;
+
+  const usdCell = (x) => {
+    const u = tradeUsdOf(x);
+    if (!u) return '<span class="dim">—</span>';
+    return u.est ? `<span class="mono dim" style="font-size:13px;">≈${fmtUsd(u.v)}</span>`
+                 : `<span class="mono" style="font-size:15px;font-weight:700;">${fmtUsd(u.v)}</span>`;
+  };
+  const qtyCell = (x, sym) => {
+    const q = Number(x.amount);
+    if (x.amount == null || isNaN(q)) return '<span class="dim">—</span>';
+    return `<span class="mono">${fmtAmount(Math.abs(q))} <span class="dim" style="font-size:12px;">${esc(sym || x.symbol || '')}</span></span>`;
+  };
+  const hashCell = (x, cls) => `<a href="${esc(x.explorer_url || '#')}" target="_blank" class="mono ${cls}" style="font-size:12px;color:var(--accent-blue);">${x.hash ? esc(String(x.hash).slice(0, 6)) + '…' : ''}</a>`;
+
+  let body;
+  if (view === 'flow') {
+    const list = side === 'all' ? scoped : scoped.filter(x => x.side === side);
+    const fcols = '96px 140px 56px 1.4fr 1fr 100px 0.8fr 88px';
+    body = list.length ? `
+      <div style="overflow-x:auto;"><div style="min-width:980px;">
+        <div class="thead" style="grid-template-columns:${fcols};"><span>时间</span><span>KOL</span><span class="c">方向</span>
+          <span>代币 / 合约</span><span class="r">数量</span><span class="r">金额 USD</span><span class="r">方式</span><span class="r">Hash</span></div>
+        ${list.map(x => `
+        <div class="trow" style="grid-template-columns:${fcols};">
+          <span class="mono dim" style="font-size:13px;">${esc(tradeTimeText(x.time))}</span>
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">${ava(x.wallet, 22, (state.kols.find(k => k.name === x.wallet) || {}).platform)}
+            <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(x.wallet)}</span></div>
+          <span class="c">${tradeSideChip(x.side)}</span>
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+            <span style="font-size:15px;font-weight:700;">${esc(x.symbol || x.token || '—')}</span>${copySticker(x.contract)}</div>
+          <span class="r">${qtyCell(x)}</span><span class="r">${usdCell(x)}</span>
+          <span class="r dim" style="font-size:12px;">${esc(x.method || x.platform || '—')}</span>
+          ${hashCell(x, 'r')}
+        </div>`).join('')}
+      </div></div>` : `<div class="empty">暂无符合条件的交易记录</div>`;
+  } else {
+    const pairs = buildTradePairs(scoped);
+    const shown = pairs.filter(g => side === 'sell' ? g.sells.length : (side === 'buy' ? g.buys.length : (g.buys.length + g.sells.length)));
+    body = shown.length ? shown.map(g => {
+      const pairRow = (x) => `
+        <div class="t-row ${x.side}">
+          ${tradeSideChip(x.side)}
+          <span class="mono dim" style="font-size:13px;width:96px;flex-shrink:0;">${esc(tradeTimeText(x.time))}</span>
+          ${g.kols.length > 1 ? `<span class="dim" style="font-size:12px;width:72px;flex-shrink:0;">${esc(x.wallet)}</span>` : ''}
+          <span style="width:110px;flex-shrink:0;">${qtyCell(x, g.symbol)}</span>
+          <span style="margin-left:auto;text-align:right;">${usdCell(x)}</span>
+          <span class="dim" style="font-size:12px;width:80px;text-align:right;flex-shrink:0;">${esc(x.method || '—')}</span>
+          ${hashCell(x, '')}
+        </div>`;
+      const buyUsdTxt = g.buyUsd > 0 ? (g.buyEst ? '≈' : '') + fmtUsd(g.buyUsd) : '—';
+      const sellUsdTxt = g.sellUsd > 0 ? (g.sellEst ? '≈' : '') + fmtUsd(g.sellUsd) : '—';
+      const realizedHtml = g.realized == null
+        ? `<span class="dim" title="已实现盈亏需买卖双腿都有真实成交额（usd 字段）；price_usd 是最新市价而非成交价，用它估算会得到恒等于 ≈0 的假盈亏，故不作计算">已实现 <span class="mono">—</span></span>`
+        : `<span>已实现 <span class="mono ${pnlCls(g.realized)}" style="font-size:15px;font-weight:700;">${fmtSignedUsd(g.realized)}</span></span>`;
+      return `
+      <div class="group">
+        <div class="g-head">
+          ${tokenLogoHtml(null, g.symbol, 'ava')}
+          <b style="font-size:15px;">$${esc(g.symbol)}</b>${copySticker(g.contract)}
+          <span class="dim" style="font-size:11px;">${g.mcap ? '市值 ' + fmtUsd(g.mcap) : ''}${g.name && g.name !== g.symbol ? ' · ' + esc(g.name) : ''}</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+            ${g.kols.length === 1
+              ? `${ava(g.kols[0], 24, (state.kols.find(k => k.name === g.kols[0]) || {}).platform)}<b style="font-size:14px;">${esc(g.kols[0])}</b>`
+              : `<span class="dim" style="font-size:11px;">多 KOL</span>${g.kols.map(k => ava(k, 24, (state.kols.find(x => x.name === k) || {}).platform)).join('')}`}
+          </span>
+        </div>
+        ${(side === 'all' || side === 'buy') ? g.buys.map(pairRow).join('') : ''}
+        ${(side === 'all' || side === 'sell') ? g.sells.map(pairRow).join('') : ''}
+        <div class="g-foot">
+          <span>买 <b class="pos mono">${g.buys.length} 笔 ${buyUsdTxt}</b></span>
+          ${g.sells.length ? `<span>卖 <b class="neg mono">${g.sells.length} 笔 ${sellUsdTxt}</b></span>` : '<span class="dim">未卖出 · 持仓中</span>'}
+          ${realizedHtml}
+          ${g.buys.length ? `<span style="margin-left:auto;" class="dim">剩余持仓 <b class="mono" style="color:var(--text-primary);">${g.remain > 0 ? fmtAmount(g.remain) : '0'}</b> ${esc(g.symbol)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty">暂无符合条件的买卖配对记录</div>`;
+  }
+
+  return `
+  <div class="card" style="margin-top:12px;">
+    <div class="tbl-title">交易记录（${kolName ? esc(kolName) : '全部 KOL'} · 最近 ${scoped.length} 笔）
+      <span style="margin-left:auto;display:flex;gap:6px;">
+        ${chip(view === 'pair', '🧩 买卖配对', "state.tradesView='pair';render()")}
+        ${chip(view === 'flow', '📜 流水', "state.tradesView='flow';render()")}
+      </span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 14px;">
+      <div class="kpi-cell"><div class="dim" style="font-size:11px;">交易笔数</div>
+        <div class="mono" style="font-size:16px;font-weight:700;">${scoped.length} <span class="dim" style="font-size:11px;">买 ${buyCnt} / 卖 ${sellCnt}</span></div></div>
+      <div class="kpi-cell"><div class="dim" style="font-size:11px;">涉及代币</div><div class="mono" style="font-size:16px;font-weight:700;">${tokenCount}</div></div>
+      <div class="kpi-cell"><div class="dim" style="font-size:11px;">已知成交额</div><div class="mono" style="font-size:16px;font-weight:700;">${usdSum ? fmtUsd(usdSum) : '—'}</div></div>
+      <div class="kpi-cell"><div class="dim" style="font-size:11px;">数据范围</div><div class="mono" style="font-size:16px;font-weight:700;">${scoped.length} 笔</div></div>
+    </div>
+    <div style="padding:0 14px 12px;">${body}</div>
+    <div class="legend">
+      <span>买入行红边条 / 卖出行绿边条 · 金额 15px 粗体 · 方向胶囊 12px 带边框</span>
+      <span style="margin-left:auto;">≈ = 由最新市价估算（非成交价）；已实现盈亏仅用真实成交额计算</span>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   MEME 线 · KOL 管理（增删改独立页）
+   ========================================================================= */
+async function renderMemeKol(el) {
+  await Promise.all([loadKols(), loadAssets()]);
+  const cards = state.kols.map(k => {
+    const live = (state.assets.kols || []).find(x => x.wallet === k.name) || {};
+    const pending = !k.has_address;
+    const edit = state.editKol === k.name;
+    if (edit) {
+      return `
+      <div class="cat">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;">✏️ 编辑 ${esc(k.name)}</div>
+        <label style="font-size:11px;color:var(--text-dim);">备注名</label>
+        <input class="inp" id="e-name-${esc(k.name)}" value="${esc(k.name)}" style="margin-bottom:6px;" />
+        <label style="font-size:11px;color:var(--text-dim);">Solana 地址${pending ? '（待补）' : ''}</label>
+        <input class="inp mono" id="e-addr-${esc(k.name)}" value="${esc(k.address || '')}" placeholder="补填后开始链上采集" style="margin-bottom:6px;" />
+        <label style="font-size:11px;color:var(--text-dim);">主页链接</label>
+        <input class="inp mono" id="e-url-${esc(k.name)}" value="${esc(k.profile_url || '')}" style="margin-bottom:8px;" />
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button class="btn-primary" style="padding:3px 12px;font-size:11px;" onclick="saveEditKol('${esc(k.name)}')">保存</button>
+          <button class="btn-ghost" style="padding:3px 11px;font-size:11px;" onclick="state.editKol=null;render()">取消</button>
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="${pending ? 'cat' : ''}" style="${pending ? '' : 'border:1px solid var(--border);border-radius:10px;padding:12px;'}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        ${ava(k.name, 30, k.platform)}
+        <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;min-width:0;">
+          ${esc(k.name)} ${platformBadge(k.platform)}</div>
+        ${k.synced_to_dashboard ? '<span class="badge ok" style="font-size:8px;">已接入采集</span>' : '<span class="badge dim" style="font-size:8px;">未同步采集</span>'}
+      </div>
+      ${pending
+        ? `<div class="dim" style="font-size:11px;">${esc(k.profile_url || '')}<br>
+             <span class="pending" style="margin-top:4px;">⚠ SOL 地址待补 · 补填后开始采集</span></div>`
+        : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:11px;" class="dim">
+             <span>持仓市值 <b class="mono" style="color:var(--text-primary);">${fmtUsd(live.value_usd)}</b></span>
+             <span>总盈亏 <b class="mono ${pnlCls(live.pnl_usd)}">${fmtSignedUsd(live.pnl_usd)}${live.roi_pct != null ? ' (' + fmtPct(live.roi_pct, 1) + ')' : ''}</b></span>
+             <span class="mono" style="grid-column:1/-1;">${esc(shortAddr(k.address))}</span>
+           </div>`}
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn-ghost" style="padding:2px 9px;font-size:10px;" onclick="setView('meme/assets');state.kolFilter='${esc(k.name)}'">详情 ↗</button>
+        ${k.synced_to_dashboard ? '' : `<button class="btn-ghost" style="padding:2px 9px;font-size:10px;" onclick="syncKol('${esc(k.name)}')">同步采集</button>`}
+        <button class="btn-ghost" style="padding:2px 9px;font-size:10px;" onclick="state.editKol='${esc(k.name)}';render()">✏️ ${pending ? '补地址' : '编辑'}</button>
+        <button class="btn-danger" style="padding:2px 9px;font-size:10px;"
+          onclick="delKol(this, event, '${esc(k.name)}')">🗑 删除</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">➕ 新增 KOL · 粘贴主页链接即可（pump.fun 或 fomo.family）</div>
+    <div style="display:flex;gap:10px;align-items:center;padding:12px 14px;flex-wrap:wrap;">
+      <input class="inp" id="add-name" placeholder="备注名" style="width:150px;background:var(--bg-base);" />
+      <input class="inp mono" id="add-url" placeholder="https://pump.fun/profile/… 或 https://fomo.family/profile/…"
+        style="flex:1;min-width:260px;background:var(--bg-base);" oninput="previewParse()" />
+      <span id="parse-badge" class="badge dim" style="padding:4px 10px;">自动识别：等待输入</span>
+      <button class="btn-primary" style="padding:8px 18px;" onclick="addKol()">添加监控</button>
+    </div>
+    <div class="legend"><span>识别规则：pump.fun/profile/&lt;SOL地址&gt; → 地址直接入库；fomo.family/profile/&lt;handle&gt; → 平台标 FOMO，SOL 地址待补（两段式）</span></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">监控 KOL · 增 / 删 / 改 都在这里
+      <span style="margin-left:auto;color:var(--accent-blue);">点卡片「详情 ↗」去资产与交易页</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 14px;">
+      ${cards || '<div class="empty">还没有监控的 KOL，用上方表单添加。</div>'}
+    </div>
+    <div class="notice">新增 KOL 只写本站 <code>cryptodog/data/kol_registry.json</code>；要让仪表盘采集器开始拉链上数据，
+      需点「同步采集」把它登记进仪表盘配置（调用仪表盘官方 API，不直接改它的文件）。</div>
+  </div>`;
+}
+
+async function previewParse() {
+  const url = document.getElementById('add-url').value;
+  const badge = document.getElementById('parse-badge');
+  if (!url) { badge.className = 'badge dim'; badge.textContent = '自动识别：等待输入'; return; }
+  try {
+    // 只识别不落库（/api/kol/parse），预览不会产生垃圾记录
+    const r = await api('/api/kol/parse', { method: 'POST', body: { profile_url: url } });
+    const p = r.parse || {};
+    if (!p.ok) { badge.className = 'badge dim'; badge.textContent = '无法识别（仅支持 pump.fun / fomo.family 主页）'; return; }
+    badge.className = 'badge ' + (p.platform === 'pumpfun' ? 'pump' : 'fomo');
+    badge.textContent = '自动识别：' + (p.platform === 'pumpfun' ? 'PUMP.FUN（地址直接入库）' : 'FOMO（地址待补）');
+  } catch (e) {
+    badge.className = 'badge dim';
+    badge.textContent = '无法识别（仅支持 pump.fun / fomo.family 主页）';
+  }
+}
+async function addKol() {
+  const name = document.getElementById('add-name').value.trim();
+  const url = document.getElementById('add-url').value.trim();
+  if (!name || !url) return toast('备注名与主页链接都要填', 'err');
+  try {
+    const r = await api('/api/kol/add', { method: 'POST', body: { name, profile_url: url } });
+    toast(esc(r.message) + (r.address_pending ? '（地址待补，补填后开始采集）' : ''), 'ok');
+    await loadKols(true);
+    render();
+  } catch (e) { toast('添加失败：' + esc(e.message), 'err'); }
+}
+async function saveEditKol(name) {
+  const g = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  try {
+    const r = await api('/api/kol/update', {
+      method: 'POST', body: {
+        name,
+        new_name: g(`e-name-${name}`),
+        address: g(`e-addr-${name}`),
+        profile_url: g(`e-url-${name}`),
+      },
+    });
+    toast(esc(r.message), 'ok');
+    state.editKol = null;
+    await loadKols(true);
+    render();
+  } catch (e) { toast('保存失败：' + esc(e.message), 'err'); }
+}
+/* 两步内联确认删除（禁用原生 confirm —— 预览/嵌入环境会拦截弹窗） */
+function delKol(btn, e, name) {
+  e.stopPropagation();
+  if (btn.dataset.confirm === '1') {
+    api('/api/kol/delete', { method: 'POST', body: { name } })
+      .then(r => { toast(esc(r.message), 'ok'); return loadKols(true); })
+      .then(() => render())
+      .catch(err => toast('删除失败：' + esc(err.message), 'err'));
+    return;
+  }
+  btn.dataset.confirm = '1';
+  btn.textContent = '确认删除？';
+  btn.classList.add('armed');
+  setTimeout(() => {
+    if (btn.isConnected && btn.dataset.confirm === '1') {
+      btn.dataset.confirm = ''; btn.textContent = '🗑 删除'; btn.classList.remove('armed');
+    }
+  }, 4000);
+}
+async function syncKol(name) {
+  try {
+    const r = await api('/api/kol/sync', { method: 'POST', body: { name } });
+    toast(esc(r.message || '已同步'), 'ok');
+    await loadKols(true);
+    render();
+  } catch (e) { toast('同步失败：' + esc(e.message), 'err'); }
+}
+
+/* =========================================================================
+   MEME 线 · MEME 跟单
+   ========================================================================= */
+function gotoMemeCopy(name) {
+  state.kolFilter = name;
+  setView('meme/copy');
+}
+async function renderMemeCopy(el) {
+  await Promise.all([loadKols(), loadAssets()]);
+  const cards = state.kols.map(k => {
+    const live = (state.assets.kols || []).find(x => x.wallet === k.name) || {};
+    const pending = !k.has_address;
+    return `
+    <div class="card kol-card">
+      <div class="head">
+        ${ava(k.name, 34, k.platform)}
+        <div style="min-width:0;">
+          <div class="name">${esc(k.name)} ${platformBadge(k.platform)}</div>
+          <div class="dim mono" style="font-size:11px;">${pending ? '地址待补 · 主页已登记' : esc(shortAddr(k.address))}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+        ${pending ? '<span class="dim" style="font-size:15px;">待采集</span>'
+                  : `<span class="roi mono ${pnlCls(live.pnl_usd)}">${fmtSignedUsd(live.pnl_usd)}</span>
+                     <span class="dim" style="font-size:11px;">总盈亏${live.roi_pct != null ? ' (' + fmtPct(live.roi_pct, 1) + ')' : ''}</span>`}
+      </div>
+      <div class="kol-metrics">
+        <div><div class="lb">持仓市值</div><div class="vl mono ${pending ? 'dim' : ''}">${pending ? '—' : fmtUsd(live.value_usd)}</div></div>
+        <div><div class="lb">持仓数</div><div class="vl mono ${pending ? 'dim' : ''}">${pending ? '—' : (live.token_count || 0)}</div></div>
+        <div><div class="lb">地址</div><div class="vl" style="font-size:12px;color:${pending ? 'var(--accent-yellow)' : 'var(--text-secondary)'};">${pending ? '待补' : '已采集'}</div></div>
+      </div>
+      <div class="kol-foot"><span class="dim" style="font-size:11px;">${pending ? '补地址后开放跟单' : '数据源：链上钱包追踪'}</span>
+        ${pending
+          ? `<button class="btn-ghost" style="margin-left:auto;" disabled title="地址待补，采集与跟单均不可用">不可用</button>`
+          : `<button class="btn-primary" style="margin-left:auto;" onclick="openMemePreset('${esc(k.name)}')">+ 跟单</button>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  const L = (state.limits && state.limits.meme) || { max_order_sol: 2, max_daily_orders: 10, max_daily_sol: 5, max_slippage_pct: 10, min_stop_loss_pct: -50 };
+  const state_ = state.copyState || {};
+  const log = await api('/api/copy/log');
+  const recs = (log.records || []).filter(r => r.kind === 'meme');
+
+  el.innerHTML = `
+  <div class="kol-grid">${cards || '<div class="card"><div class="empty">还没有监控的 KOL，先去「KOL 管理」添加。</div></div>'}</div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">MEME 跟单配置（自动跟单预设）· 风控由服务端强制
+      <span style="margin-left:auto;color:var(--accent-yellow);">服务端上限：单笔 ≤ ${L.max_order_sol} SOL · 每日 ≤ ${L.max_daily_sol} SOL / ${L.max_daily_orders} 笔 · 滑点 ≤ ${L.max_slippage_pct}%</span></div>
+    <div class="form-grid">
+      <div><label>跟单对象</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${state.kols.map(k => `<button class="pill ${state.kolFilter === k.name ? 'on' : ''}" onclick="state.kolFilter='${esc(k.name)}';render()">${esc(k.name)}</button>`).join('')}
+          <button class="pill ${state.kolFilter === 'all' ? 'on' : ''}" onclick="state.kolFilter='all';render()">全部 KOL</button>
+        </div></div>
+      <div><label>单笔跟单金额 (SOL)</label><input class="inp mono" id="m-order" value="0.5" /></div>
+      <div><label>每日跟单笔数上限</label><input class="inp mono" id="m-orders" value="5" /></div>
+      <div><label>每日金额上限 (SOL)</label><input class="inp mono" id="m-daily" value="3" /></div>
+      <div><label>买入滑点上限</label><input class="inp mono" id="m-slip" value="3" /></div>
+      <div><label>止损线 (%)</label><input class="inp mono" id="m-stop" value="-30" /></div>
+      <div><label>止盈策略</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="pill on" data-mtp="follow" onclick="pickPill(this,'mtp')">跟随卖出</button>
+          <button class="pill" data-mtp="half" onclick="pickPill(this,'mtp')">+50% 出一半</button>
+          <button class="pill" data-mtp="roi" onclick="pickPill(this,'mtp')">固定 ROI</button>
+        </div></div>
+      <div class="full"><label>黑名单（不跟的代币/合约，逗号分隔）</label>
+        <input class="inp mono" id="m-black" placeholder="合约地址或代币符号" /></div>
+      <div class="full" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+        <span class="switch" title="v1 服务端恒为关闭"><span class="sw ${state_.auto_execute ? 'on' : ''} locked"></span>
+          启用自动跟单（服务端 v1 恒为关闭 = 仅推送提醒）</span>
+        <button class="btn-primary" style="margin-left:auto;padding:9px 26px;" onclick="savePreset('meme')">保存预设</button>
+      </div>
+    </div>
+    <div class="notice warn">总开关默认关闭且服务端不可开启：v1 未接入链上签名/交易所下单能力，跟单请求一律只留痕不执行。</div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-title">我的跟单执行记录 · 触发 → 执行 → 结果 全链路可追溯</div>
+    <div class="thead" style="grid-template-columns:110px 140px 1.2fr 90px 1fr 150px 90px;">
+      <span>时间</span><span>触发来源</span><span>代币</span><span class="c">方向</span>
+      <span class="r">KOL 金额 → 跟单金额</span><span class="r">执行结果</span><span class="r">盈亏</span></div>
+    ${recs.length ? recs.map(r => `
+      <div class="trow" style="grid-template-columns:110px 140px 1.2fr 90px 1fr 150px 90px;">
+        <span class="mono dim" style="font-size:12px;">${esc((r.time || '').replace('T', ' ').slice(5, 16))}</span>
+        <span style="font-size:13px;">${esc(r.source || '—')} ${platformBadge(r.source_platform, true)}</span>
+        <span style="font-weight:600;">${esc(r.token || '—')}</span>
+        <span class="c">${tradeSideChip(r.direction === 'sell' ? 'sell' : 'buy')}</span>
+        <span class="r mono" style="font-size:12px;">${esc(String(r.kol_amount || '—'))} → <b>${esc(String(r.copy_amount || '—'))}</b></span>
+        <span class="r" style="font-size:12px;color:var(--accent-yellow);">⛔ 未执行（v1 只读）</span>
+        <span class="r mono dim">—</span>
+      </div>`).join('') : `<div class="empty">还没有跟单请求记录。任何执行请求都会在此留痕（v1 全部为「未执行」）。</div>`}
+  </div>`;
+}
+function openMemePreset(name) {
+  state.kolFilter = name;
+  render();
+  toast(`已选中跟单对象：${esc(name)} —— 在下方「MEME 跟单配置」里保存预设`, 'ok');
+}
+
+/* =========================================================================
+   全局熔断
+   ========================================================================= */
+async function refreshKillBtn() {
+  try {
+    const r = await api('/api/copy/presets');
+    state.copyState = r.state || {};
+    state.limits = r.limits;
+    const b = document.getElementById('kill-btn');
+    if (b) {
+      const on = !!(r.state || {}).kill_switch;
+      b.textContent = on ? '🛑 熔断中' : '🛑 熔断';
+      b.style.color = on ? 'var(--up)' : '';
+      b.style.borderColor = on ? 'var(--up)' : '';
+    }
+  } catch (e) { /* 忽略 */ }
+}
+async function toggleKill() {
+  const on = !(state.copyState || {}).kill_switch;
+  try {
+    const r = await api('/api/copy/killswitch', { method: 'POST', body: { on } });
+    toast(esc(r.message), on ? 'err' : 'ok');
+    await refreshKillBtn();
+  } catch (e) { toast('操作失败：' + esc(e.message), 'err'); }
+}
+
+/* =========================================================================
+   启动
+   ========================================================================= */
+(function boot() {
+  document.getElementById('logo-mark').innerHTML = `<img src="/assets/cryptodog-logo.svg" alt="CryptoDog"
+    style="width:100%;height:100%;" />`;
+  applyTheme();
+  syncFromHash();
+  render();
+  window.addEventListener('hashchange', () => { syncFromHash(); render(); });
+})();
+</script>
+</body>
+</html>

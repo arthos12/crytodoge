@@ -1,0 +1,223 @@
+{
+  "updated_at": "2026-09-12T18:15:46+08:00",
+  "source": "binance-fapi (public, no key)",
+  "proxy": "127.0.0.1:7897",
+  "oi": {
+    "total_usd": 17483690752.9168,
+    "total_usd_prev": 17460159058.629227,
+    "change_24h_pct": 0.13477365359936308,
+    "symbols_counted": 25,
+    "scope": "币安 U 本位成交额 Top 25 合约合计"
+  },
+  "funding": {
+    "threshold": 0.001,
+    "abnormal_count": 6,
+    "abnormal": [
+      {
+        "symbol": "VTHOUSDT",
+        "funding_rate": -0.00348988
+      },
+      {
+        "symbol": "LSKUSDT",
+        "funding_rate": -0.00330991
+      },
+      {
+        "symbol": "MTLUSDT",
+        "funding_rate": -0.00208623
+      },
+      {
+        "symbol": "TREEUSDT",
+        "funding_rate": -0.00171281
+      },
+      {
+        "symbol": "RVNUSDT",
+        "funding_rate": -0.00134708
+      },
+      {
+        "symbol": "IOSTUSDT",
+        "funding_rate": -0.00114417
+      }
+    ]
+  },
+  "liquidations": {
+    "available": false,
+    "reason": "币安已下线公开 allForceOrders 端点（实测 404，现需 API key）；未接入第三方数据源，不伪造数值"
+  },
+  "top_symbols": [
+    {
+      "symbol": "BTCUSDT",
+      "oi_usd": 7980502326.269426,
+      "oi_change_24h_pct": -2.4211040779913087,
+      "funding_rate": 3.394e-05,
+      "mark_price": 77365.6
+    },
+    {
+      "symbol": "ETHUSDT",
+      "oi_usd": 5843053436.206734,
+      "oi_change_24h_pct": 3.5859517652258615,
+      "funding_rate": 3.991e-05,
+      "mark_price": 2532.70104651
+    },
+    {
+      "symbol": "SOLUSDT",
+      "oi_usd": 797456811.9445497,
+      "oi_change_24h_pct": -0.013528695330419609,
+      "funding_rate": 4.476e-05,
+      "mark_price": 102.07477457
+    },
+    {
+      "symbol": "ZECUSDT",
+      "oi_usd": 587791867.9246671,
+      "oi_change_24h_pct": 2.1220425975821167,
+      "funding_rate": 4.295e-05,
+      "mark_price": 1153.16
+    },
+    {
+      "symbol": "BNBUSDT",
+      "oi_usd": 438776976.8753438,
+      "oi_change_24h_pct": 2.052650100259073,
+      "funding_rate": 1.464e-05,
+      "mark_price": 736.67519178
+    },
+    {
+      "symbol": "XRPUSDT",
+      "oi_usd": 407680116.1687737,
+      "oi_change_24h_pct": 0.9337851989708736,
+      "funding_rate": 4.388e-05,
+      "mark_price": 1.37018967
+    },
+    {
+      "symbol": "HYPEUSDT",
+      "oi_usd": 320154025.4976,
+      "oi_change_24h_pct": -0.8961546945916357,
+      "funding_rate": 3.81e-05,
+      "mark_price": 79.613
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "oi_usd": 223460131.947636,
+      "oi_change_24h_pct": -4.673915087278411,
+      "funding_rate": 5.595e-05,
+      "mark_price": 0.08501
+    },
+    {
+      "symbol": "UNIUSDT",
+      "oi_usd": 124454521.743,
+      "oi_change_24h_pct": -3.313366447249856,
+      "funding_rate": 4.521e-05,
+      "mark_price": 6.35432444
+    },
+    {
+      "symbol": "NEARUSDT",
+      "oi_usd": 100309855.682,
+      "oi_change_24h_pct": -6.897901608411525,
+      "funding_rate": -0.00020107,
+      "mark_price": 2.379
+    },
+    {
+      "symbol": "LINKUSDT",
+      "oi_usd": 98166459.6175,
+      "oi_change_24h_pct": -7.6073363354311985,
+      "funding_rate": 1.412e-05,
+      "mark_price": 11.542
+    },
+    {
+      "symbol": "SUIUSDT",
+      "oi_usd": 95627794.86468,
+      "oi_change_24h_pct": -1.998357256361651,
+      "funding_rate": -1.64e-05,
+      "mark_price": 0.7259
+    },
+    {
+      "symbol": "ADAUSDT",
+      "oi_usd": 77421109.4076,
+      "oi_change_24h_pct": 1.359294434995622,
+      "funding_rate": 0.0001,
+      "mark_price": 0.20865599
+    },
+    {
+      "symbol": "ENAUSDT",
+      "oi_usd": 76852608.14748,
+      "oi_change_24h_pct": -0.5706020593573181,
+      "funding_rate": -1.887e-05,
+      "mark_price": 0.14173404
+    },
+    {
+      "symbol": "PUMPUSDT",
+      "oi_usd": 74059264.19466393,
+      "oi_change_24h_pct": -5.369392463267879,
+      "funding_rate": 5e-05,
+      "mark_price": 0.00358408
+    },
+    {
+      "symbol": "1000PEPEUSDT",
+      "oi_usd": 60889261.187712,
+      "oi_change_24h_pct": -1.6826925067206326,
+      "funding_rate": 7.21e-06,
+      "mark_price": 0.0033831
+    },
+    {
+      "symbol": "牛来USDT",
+      "oi_usd": 39549501.4241395,
+      "oi_change_24h_pct": 5.889021473572947,
+      "funding_rate": 5e-05,
+      "mark_price": 0.12956682
+    },
+    {
+      "symbol": "PONSUSDT",
+      "oi_usd": 33123279.3144,
+      "oi_change_24h_pct": 4.345689598590706,
+      "funding_rate": 0.00028397,
+      "mark_price": 0.65833248
+    },
+    {
+      "symbol": "龙虾USDT",
+      "oi_usd": 29550494.3743268,
+      "oi_change_24h_pct": 126.86828048426311,
+      "funding_rate": 0.00060594,
+      "mark_price": 0.127067
+    },
+    {
+      "symbol": "LABUSDT",
+      "oi_usd": 21240045.37650276,
+      "oi_change_24h_pct": 104.12884182357287,
+      "funding_rate": 8.427e-05,
+      "mark_price": 0.07189
+    },
+    {
+      "symbol": "USELESSUSDT",
+      "oi_usd": 20952708.897592,
+      "oi_change_24h_pct": -9.950780160309757,
+      "funding_rate": 5e-05,
+      "mark_price": 0.23201347
+    },
+    {
+      "symbol": "RAYSOLUSDT",
+      "oi_usd": 15011368.7715,
+      "oi_change_24h_pct": 36.97870667083464,
+      "funding_rate": 5e-05,
+      "mark_price": 1.5999
+    },
+    {
+      "symbol": "VTHOUSDT",
+      "oi_usd": 6599413.50529906,
+      "oi_change_24h_pct": -24.675440192987697,
+      "funding_rate": -0.00348988,
+      "mark_price": 0.00069014
+    },
+    {
+      "symbol": "METUSDT",
+      "oi_usd": 5928536.4468,
+      "oi_change_24h_pct": 38.04100087904567,
+      "funding_rate": -6.227e-05,
+      "mark_price": 0.2396072
+    },
+    {
+      "symbol": "LSKUSDT",
+      "oi_usd": 5078837.12688,
+      "oi_change_24h_pct": 108.53744606464477,
+      "funding_rate": -0.00330991,
+      "mark_price": 0.2098474
+    }
+  ]
+}

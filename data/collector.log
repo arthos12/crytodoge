@@ -1,0 +1,10 @@
+[2026-09-12T18:15:12] === 开始采集 ['market', 'traders'] ===
+[2026-09-12T18:15:12] market: 开始 futures_market.py
+[2026-09-12T18:15:33] === 开始采集 ['market', 'traders'] ===
+[2026-09-12T18:15:33] market: 开始 futures_market.py
+[2026-09-12T18:15:46] market: ✅ 完成 12.9s | OI �ϼ� $17,483,690,753 �� 24h +0.13% �� 25 ����Լ / �ʽ�����쳣 6 ������ֵ 0.001�� / �� D:\project\cryptodog\data\futures_market.json
+[2026-09-12T18:15:46] traders: 开始 futures_traders.py
+[2026-09-12T18:16:08] traders: ✅ 完成 22.2s | ����Ա 8 λ �� ��λ 30 �� �� ǿƽԤ�� 0 �� / �� D:\project\cryptodog\data\futures_traders.json
+[2026-09-12T18:16:08] 验证 · 合约行情: updated_at=2026-09-12T18:15:46+08:00 age=23s
+[2026-09-12T18:16:08] 验证 · 带单交易员: updated_at=2026-09-12T18:16:08+08:00 age=1s trader_count=8 position_count=30 liq_warn_count=0
+[2026-09-12T18:16:08] === 采集结束 全部成功 ===
