@@ -31,7 +31,30 @@ DEFAULT_CONFIG = {
     "watch_limit": 8,          # 研判卡最多展示条数
 }
 
-SCHEMA = 2      # 结果结构版本：升级后旧缓存自动失效（避免前端读到缺字段的旧结果）
+SCHEMA = 3      # 结果结构版本：升级后旧缓存自动失效（避免前端读到缺字段的旧结果）
+#   v2 → v3（2026-09-12 DSH）：接入链上完整历史（collectors/kol_history.py），
+#   新增 scope.wallet_* 与 item.history_used；早期埋伏空态从"窗口不足"改为**有据可依**的说明
+
+HISTORY_DIR = Path(__file__).resolve().parent / "data" / "kol_history"
+
+
+def load_history(name: str) -> dict | None:
+    """链上完整历史（collectors/kol_history.py 产出）。
+
+    ⚠ 为什么需要（2026-09-12 实测结论）：仪表盘 tracker 每轮只抓最近 N 笔，
+    但**实测三个 KOL 钱包的完整链上历史本身就只有 1.0–2.2 天**
+    （`exhausted=True` 表示已翻到最早一笔）——所以「早期埋伏（需 >14 天）」为空
+    **不是采集窗口不够，而是钱包本身没有那么久的历史**。本函数把这份证据带进信号，
+    让前端能如实说明原因，而不是含糊写"窗口不足"。
+    """
+    p = HISTORY_DIR / f"{name}.json"
+    if not p.exists():
+        return None
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+    return d if d.get("mints") is not None else None
 
 
 def load_config() -> dict:
@@ -142,12 +165,19 @@ def _pos_of(agg_item: dict, pos_idx: dict):
             or pos_idx.get((agg_item.get("symbol") or "").upper()))
 
 
-def compute_signals(trades: list, positions: list, cfg: dict | None = None) -> dict:
-    """返回三类信号分组 + 汇总（全部字段可溯源到原始交易）"""
+def compute_signals(trades: list, positions: list, cfg: dict | None = None,
+                    history: dict | None = None) -> dict:
+    """返回三类信号分组 + 汇总（全部字段可溯源到原始交易）
+
+    history：collectors/kol_history.py 的完整链上历史（可空）。有它时：
+      · 首买时间/累计买入/已卖出用**完整历史**（而非 2 天窗口），早期埋伏判定才有意义
+      · scope 带出钱包真实历史跨度与「已翻到头」证据，供前端如实说明空态原因
+    """
     cfg = cfg or load_config()
     now = datetime.now()
     agg = _agg_by_token(trades or [])
     pos_idx = _pos_index(positions or [])
+    hist_mints = (history or {}).get("mints") or {}
 
     repeat, large, early = [], [], []
     for key, a in agg.items():
@@ -162,6 +192,22 @@ def compute_signals(trades: list, positions: list, cfg: dict | None = None) -> d
         last_buy = max((b["t"] for b in a["buys"] if b["t"]), default=None)
         avg_buy = (total_buy_usd / len(a["buys"])) if a["buys"] else 0
         sold_pct = (sold_amt / bought_amt * 100) if bought_amt > 0 else 0.0
+
+        # ---- 用完整链上历史校正（有则优先，因为它覆盖钱包全生命周期而非 2 天窗口）----
+        hist = hist_mints.get(a["contract"]) or {}
+        history_used = False
+        if hist:
+            h_first = _dt(hist.get("first_buy_time")) if hist.get("first_buy_time") else None
+            if h_first and (first_buy is None or h_first < first_buy):
+                first_buy = h_first
+                history_used = True
+            h_bought = hist.get("bought_qty")
+            h_sold = hist.get("sold_qty")
+            if h_bought:
+                bought_amt = max(bought_amt, float(h_bought))
+                sold_amt = max(sold_amt, float(h_sold or 0))
+                sold_pct = (sold_amt / bought_amt * 100) if bought_amt > 0 else 0.0
+                history_used = True
 
         base = {
             "symbol": a["symbol"], "name": a["name"], "contract": a["contract"],
@@ -180,6 +226,7 @@ def compute_signals(trades: list, positions: list, cfg: dict | None = None) -> d
             "last_buy_time": last_buy.isoformat() if last_buy else None,
             "hold_days": ((now - first_buy).days if first_buy else None),
             "last_buy_age_days": ((now - last_buy).days if last_buy else None),
+            "history_used": history_used,      # 该币的统计是否用上了完整链上历史
         }
 
         # ---- ① 近期多次买入 ----
@@ -228,15 +275,38 @@ def compute_signals(trades: list, positions: list, cfg: dict | None = None) -> d
     first_t = _dt(times[0]) if times else None
     last_t = _dt(times[-1]) if times else None
     window_days = round((last_t - first_t).total_seconds() / 86400, 1) if (first_t and last_t) else None
+
+    # 完整链上历史（若有）：它是「钱包真实历史跨度」的证据，优先用它判定能否评估早期埋伏
+    hwin = (history or {}).get("window") or {}
+    wallet_span = hwin.get("span_days")
+    wallet_exhausted = bool(hwin.get("exhausted"))
+    wallet_first = hwin.get("oldest_trade")
+    best_span = wallet_span if wallet_span is not None else window_days
+    can_judge = bool(best_span is not None and best_span >= cfg["early_days"])
+    if can_judge:
+        early_note = ""
+    elif wallet_exhausted and wallet_span is not None:
+        # ⭐ 有据可依的结论：已翻到该地址最早一笔 → 历史就这么多，不是采集没抓够
+        early_note = (f"该 KOL 钱包链上历史共 {wallet_span} 天（已翻到最早一笔 {str(wallet_first)[:10]}），"
+                      f"不足判定「首买 > {cfg['early_days']} 天」的早期埋伏——属钱包本身历史长度限制，非采集缺失")
+    else:
+        early_note = (f"采集窗口仅 {window_days} 天，不足判定「首买 > {cfg['early_days']} 天」；"
+                      f"可运行 cryptodog/collectors/kol_history.py 回溯完整历史")
+
     scope = {
         "trades": len(trades or []),
         "tokens": len(agg),
         "first_trade": times[0] if times else None,
         "last_trade": times[-1] if times else None,
         "window_days": window_days,
-        "can_judge_early": bool(window_days is not None and window_days >= cfg["early_days"]),
-        "note": ("信号基于采集到的最近交易窗口计算（仪表盘 tracker 每轮只抓最近 N 笔，非全历史）；"
-                 "买入金额若交易流未带 USD，则用同刻稳定币流出腿配对估算（标 ≈）"),
+        "wallet_span_days": wallet_span,          # 钱包完整链上历史跨度（kol_history.py 产出）
+        "wallet_first_tx": wallet_first,
+        "wallet_history_exhausted": wallet_exhausted,
+        "history_source": (history or {}).get("updated_at"),
+        "can_judge_early": can_judge,
+        "early_empty_reason": early_note,
+        "note": ("信号基于采集到的最近交易窗口计算；若已跑 kol_history.py，则首买/累计买卖用**完整链上历史**校正（"
+                 "仓位与浮盈仍来自仪表盘实时持仓）；买入金额若交易流未带 USD，则用同刻稳定币流出腿配对估算（标 ≈）"),
     }
 
     return {
@@ -302,18 +372,26 @@ def _level_and_reason(a: dict, signals: dict, cfg: dict) -> tuple:
     return level, label, "；".join(bits) + "。", advice
 
 
-def build_review(name: str, trades: list, positions: list, cfg: dict | None = None) -> dict:
+def build_review(name: str, trades: list, positions: list, cfg: dict | None = None,
+                 history: dict | None = None) -> dict:
     """生成该 KOL 的「重点关注分析」：规则研判逐币打分（可选 LLM 增强）"""
     cfg = cfg or load_config()
-    signals = compute_signals(trades, positions, cfg)
+    signals = compute_signals(trades, positions, cfg, history)
     pos_idx = _pos_index(positions or [])
     agg = _agg_by_token(trades or [])
+    hist_mints = (history or {}).get("mints") or {}
 
     rows = []
     for key, a in agg.items():
         if not a["buys"]:
             continue
         pos = _pos_of(a, pos_idx) or {}
+        fb_time = min((b["time"] for b in a["buys"] if b["time"]), default=None)
+        hist = hist_mints.get(a["contract"]) or {}
+        h_first = hist.get("first_buy_time")
+        # 首买时间优先取完整历史（窗口内首买可能不是真实首买）
+        if h_first and (fb_time is None or h_first < fb_time):
+            fb_time = h_first
         merged = {
             "symbol": a["symbol"], "name": a["name"], "contract": a["contract"],
             "platform": a["platform"], "chain": a["chain"],
@@ -322,7 +400,8 @@ def build_review(name: str, trades: list, positions: list, cfg: dict | None = No
             "roi_pct": pos.get("roi_pct"), "balance": pos.get("balance"),
             "total_buy_usd": round(sum((b["usd"] or 0) for b in a["buys"]), 2),
             "buy_count": len(a["buys"]), "sell_count": len(a["sells"]),
-            "first_buy_time": min((b["time"] for b in a["buys"] if b["time"]), default=None),
+            "first_buy_time": fb_time,
+            "history_used": bool(hist),
         }
         fb = _dt(merged["first_buy_time"])
         merged["hold_days"] = (datetime.now() - fb).days if fb else None
@@ -342,6 +421,15 @@ def build_review(name: str, trades: list, positions: list, cfg: dict | None = No
         "signals": signals,
         "watchlist": rows[:cfg["watch_limit"]],
         "watchlist_total": len(rows),
+        "history": ({
+            "used": True,
+            "updated_at": (history or {}).get("updated_at"),
+            "mint_count": (history or {}).get("mint_count"),
+            "window": (history or {}).get("window"),
+            "source": (history or {}).get("source"),
+        } if history else {"used": False,
+                            "hint": "未跑 collect_history：首买/累计买卖仅覆盖最近交易窗口，"
+                                    "运行 cryptodog/collectors/kol_history.py 可回溯完整链上历史"}),
     }
 
     llm = _llm_enhance(name, payload)

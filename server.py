@@ -301,7 +301,7 @@ def health():
         "ok": True,
         "service": "cryptodog",
         "version": SITE_VERSION,                     # 站点版本（= VERSION 文件 = git tag）
-        "spec": "memory/design_copytrade_site.md §1-10",
+        "spec": "memory/design_copytrade_site.md §1-14",
         "port": PORT,
         "now": _now(),
         "data": {
@@ -419,7 +419,7 @@ def meme_signals(kol: str = "all", refresh: int = 0):
         return JSONResponse(status_code=503, content={"error": err1})
     pos_rows = [p for p in ((pos or {}).get("positions") or []) if p.get("wallet") == kol]
     trade_rows = [t for t in ((tr or {}).get("trades") or []) if t.get("wallet") == kol]
-    return sg.build_review(kol, trade_rows, pos_rows)
+    return sg.build_review(kol, trade_rows, pos_rows, history=sg.load_history(kol))
 
 
 @app.post("/api/meme/signals/refresh")
@@ -434,7 +434,25 @@ def meme_signals_refresh(body: dict = Body(...)):
         return JSONResponse(status_code=503, content={"error": err1})
     pos_rows = [p for p in ((pos or {}).get("positions") or []) if p.get("wallet") == kol]
     trade_rows = [t for t in ((tr or {}).get("trades") or []) if t.get("wallet") == kol]
-    return sg.build_review(kol, trade_rows, pos_rows)
+    return sg.build_review(kol, trade_rows, pos_rows, history=sg.load_history(kol))
+
+
+@app.get("/api/meme/history")
+def meme_history(kol: str = "all"):
+    """链上完整历史（collectors/kol_history.py 产出）：钱包真实跨度 + 「已翻到头」证据"""
+    if kol == "all" or not kol:
+        out = {}
+        for f in sorted(sg.HISTORY_DIR.glob("*.json")):
+            d = sg.load_history(f.stem)
+            if d:
+                out[f.stem] = {"window": d.get("window"), "mint_count": d.get("mint_count"),
+                               "updated_at": d.get("updated_at")}
+        return {"kols": out}
+    d = sg.load_history(kol)
+    if not d:
+        return {"kol": kol, "available": False,
+                "hint": "尚未回溯：运行 D:/project/.venv/Scripts/python.exe cryptodog/collectors/kol_history.py"}
+    return {"kol": kol, "available": True, **d}
 
 
 @app.get("/api/logo")

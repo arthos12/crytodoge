@@ -814,17 +814,23 @@ function signalsHtml(kolName) {
   const sig = s.signals || {};
   const scope = sig.data_scope || {};
   const winDays = scope.window_days;
+  const walletDays = scope.wallet_span_days;
   const scopeNote = scope.trades
     ? `数据窗口 ${scope.trades} 笔 / ${winDays != null ? winDays + ' 天' : '—'}（${esc(String(scope.first_trade || '').slice(5, 10))}~${esc(String(scope.last_trade || '').slice(5, 10))}）`
+      + (walletDays != null ? ` · 链上完整历史 ${walletDays} 天${scope.wallet_history_exhausted ? '（已翻到最早）' : ''}` : '')
     : '暂无交易流';
   const srcTag = s.source === 'rules+llm'
     ? '<span class="badge ok">规则统计 + LLM 研判</span>'
     : '<span class="badge dim">规则研判（未配置 LLM key）</span>';
 
-  // 空态要说明「为什么为空」：数据窗口不足 ≠ 真的没有
+  // 空态要说明「为什么为空」：优先用后端给出的**有据可依**原因
+  // （2026-09-12 实测：三个 KOL 钱包完整链上历史仅 0.1–2.2 天且已翻到最早一笔
+  //  → 早期埋伏为空属钱包本身历史长度限制，不是采集窗口没抓够；旧的"扩深历史需分页回溯"文案已不成立）
+  const earlyDays = sig.config ? sig.config.early_days : 14;
   const emptyEarly = scope.can_judge_early === false
-    ? `采集窗口仅 ${winDays != null ? winDays : '—'} 天，不足判定「早期埋伏」（需 >${sig.config ? sig.config.early_days : 14} 天历史）。
-       仪表盘 tracker 目前每轮只抓最近 N 笔交易，扩深历史需在其采集侧增加分页回溯。`
+    ? (scope.early_empty_reason
+        ? esc(scope.early_empty_reason)
+        : `采集窗口仅 ${winDays != null ? winDays : '—'} 天，不足判定「早期埋伏」（需 >${earlyDays} 天历史）。`)
     : '没有符合条件的早期埋伏持仓';
 
   // ② AI 重点关注分析
@@ -859,7 +865,7 @@ function signalsHtml(kolName) {
     </div>
     <div style="padding:12px 14px;display:grid;gap:10px;">${watchRows}</div>
     <div class="legend"><span>研判 = 规则统计（可解释，理由均引用具体数字）${s.llm ? ' + LLM 综合研判' : ''}</span>
-      <span>${scopeNote}${scope.can_judge_early === false ? ' · ⚠ 窗口 < 早期埋伏阈值' : ''}</span>
+      <span>${scopeNote}${scope.can_judge_early === false ? ' · ⚠ 不足判定早期埋伏' : ''}</span>
       <span style="margin-left:auto;">分级：🔥 强 / 👀 中 / ⚪ 观望</span></div>
   </div>`;
 

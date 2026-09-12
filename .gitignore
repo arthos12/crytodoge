@@ -1,3 +1,21 @@
-# Python 编译缓存（本次不纳入仓库，其余文件全部上传）
+# Python 编译缓存
 __pycache__/
 *.pyc
+
+# ── 运行产物：每次采集/验收/跟单都会改写 → 不入库（2026-09-12 DSH#C 按用户授权处理）──
+# 理由：采集器 cron 每 15 分钟、验收脚本每次运行都会改写这些文件，
+#       入库会让公开仓库长期处于"脏工作区"，且这些内容对读者无意义。
+# 保留入库的只有：代码 + 配置类数据（data/kol_registry.json、data/kol_signals/）
+data/collector.log
+data/futures_market.json
+data/futures_traders.json
+data/copy_log.json
+data/copy_presets.json
+data/copy_state.json
+data/verify/
+data/kol_history/
+
+# ── C 盘运维诊断脚本（读 hermes cron jobs.json）不该出现在公开仓库 ──
+# 见 memory/agent_dispatch.md R-4：归 Hermes，正式做法是移出仓库
+_check_*.py
+_cron_status.py
