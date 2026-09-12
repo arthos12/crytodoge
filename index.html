@@ -55,6 +55,8 @@
   .nav-item.on::after { content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--grad-primary); border-radius:3px 3px 0 0; }
   .nav-item .hint { font-size:10px; color:var(--text-dim); font-weight:400; display:block; letter-spacing:.5px; margin-top:1px; }
   .nav-right { margin-left:auto; display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-secondary); }
+  /* 站点版本徽标：静态值 = VERSION 文件回退值，启动后由 /api/health 覆盖（单一事实来源） */
+  .ver-chip { font-size:11px; font-weight:600; font-family:var(--font-mono,ui-monospace,monospace); padding:2px 8px; border-radius:999px; color:var(--text-secondary); background:var(--surface-2,#ffffff0d); border:1px solid var(--border,#ffffff1a); cursor:default; }
   .avatar-mini { width:28px; height:28px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; font-weight:700; }
   .icon-btn { background:var(--bg-hover); border:1px solid var(--border); color:var(--text-secondary); border-radius:9px; padding:5px 10px; font-size:12px; }
   .icon-btn:hover { color:var(--text-primary); border-color:var(--accent-blue); }
@@ -183,6 +185,7 @@
   <button class="nav-item on" id="nav-c" onclick="navTo('c')">合约<span class="hint">合约监控 · 合约跟单</span></button>
   <button class="nav-item" id="nav-m" onclick="navTo('m')">MEME<span class="hint">KOL 资产 · 跟单</span></button>
   <div class="nav-right">
+    <span class="ver-chip" id="ver-chip" title="站点版本（与仓库 git tag 同名）">v1.0.0</span>
     <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="切换深色/浅色">🌙</button>
     <button class="icon-btn" id="kill-btn" onclick="toggleKill()" title="全局熔断：一键停止所有跟单">🛑 熔断</button>
     <span title="跟单推送确认入口（v1 未接入推送通道）">🔔</span>
@@ -200,7 +203,8 @@
 
 <script>
 /* =========================================================================
-   CryptoDog 加密狗跟单站 v1
+   CryptoDog 加密狗跟单站
+   站点版本：见 VERSION 文件（顶栏徽标由 /api/health 回填；版本轴区分见 README「版本」节）
    - 独立新站（端口 8100），与投资仪表盘（8000）数据层共用、视觉一致
    - 组件移植自仪表盘：平台徽章体系 / 地址待补两段式 / 📋 复制贴纸 / 交易记录 v2 配对视图
    - v1 安全边界：无任何真实下单能力；自动跟单默认关；风控参数服务端强制
@@ -1448,6 +1452,14 @@ async function toggleKill() {
   } catch (e) { toast('操作失败：' + esc(e.message), 'err'); }
 }
 
+/* 站点版本：从后端 /api/health 读（单一事实来源 = VERSION 文件），失败保留静态回退值 */
+async function loadVersion() {
+  try {
+    const h = await api('/api/health');
+    if (h && h.version) document.getElementById('ver-chip').textContent = 'v' + h.version;
+  } catch (e) { /* 后端未起时保留 HTML 里的静态版本号 */ }
+}
+
 /* =========================================================================
    启动
    ========================================================================= */
@@ -1457,6 +1469,7 @@ async function toggleKill() {
   applyTheme();
   syncFromHash();
   render();
+  loadVersion();
   window.addEventListener('hashchange', () => { syncFromHash(); render(); });
 })();
 </script>

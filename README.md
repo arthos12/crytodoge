@@ -4,6 +4,30 @@
 > 规格：`memory/design_copytrade_site.md`（§1-10 规格 / §11 实现状态 / §12 给 workbuddy 的实现反馈）
 > 视觉稿：`docs/design-copytrade-site.html` · Logo：`docs/assets/cryptodog-logo.svg`
 
+## 版本
+
+**当前版本：`1.0.0`**（首个版本，2026-09-12）· 远端仓库：`https://github.com/arthos12/crytodoge`
+
+**三条版本轴，勿混用**：
+
+| 版本轴 | 单一事实来源 | 表示什么 | 何时动 |
+|---|---|---|---|
+| **站点版本**（semver，本仓库） | `VERSION` 文件 + `git tag vX.Y.Z` + `CHANGELOG.md` | 这一版站点发布了什么 | 每次发版 |
+| **规格版本** | `memory/design_copytrade_site.md` §1-10 | 设计侧需求基线 | 设计变更时 |
+| **数据 schema 版本** | `signals.py:SCHEMA` | 只管信号缓存失效 | 信号缓存结构变更时 |
+
+> 站点 `v1.0.0` **≠** 规格「v1」**≠** 仪表盘版本（仪表盘 `:8000` 是另一个项目，独立发版，不随本仓库走）。
+
+**发版动作（4 步，缺一不可）**：
+
+1. 改 `VERSION`（BREAKING → MAJOR；新功能 → MINOR；修 bug/文案 → PATCH）
+2. `CHANGELOG.md` 顶部加条目（`## [X.Y.Z] — YYYY-MM-DD`）
+3. 打标签并推：`git tag -a vX.Y.Z -m "..."` + `git push origin main --tags`
+4. 回写 `memory/cryptodog_versioning.md` 的版本清单
+
+**怎么确认跑的是哪一版**：顶栏版本徽标（`GET /api/health` → `version`，同时返回 `spec`）· `git -C D:/project/cryptodog describe --tags` · 验收报告/截图应带版本号
+
+
 ## 快速开始
 
 ```bash
@@ -21,6 +45,8 @@ D:/project/.venv/Scripts/python.exe D:/project/cryptodog/run_collectors.py      
 
 ```
 cryptodog/
+├── VERSION                    站点版本（单一事实来源，与 git tag vX.Y.Z 同名）
+├── CHANGELOG.md               版本更新日志（发版必写；含各版已知限制）
 ├── server.py                  FastAPI:8100（静态前端 + API + logo 代理 + KOL 注册表）
 ├── index.html                 SPA（五视图 hash 路由；token 抄仪表盘 Design System v2.1）
 ├── signals.py                 KOL 信号统计（多次买入/大额买入/早期埋伏）+ 规则可解释研判
