@@ -1,3 +1,17 @@
+## [1.2.1] - 2026-09-14
+
+修复「代币显示太大」+ 全面 BUG 回归。
+
+- **修复**：`tokenLogoHtml(logo, sym, cls)` 丢弃第 4 参 px → `<img class="ava">` 无尺寸约束，
+  CDN 原图（实测最大 1254px）直接渲染撑爆表格。现签名收 `px=26` 默认值，img 加内联
+  `width/height`，`.ava` CSS 补 `max-width/max-height:44px` 兜底；5 处调用点全部显式传参
+  （资产主表 26、合约 tokenCell 22、watchlist 26、交易流水 22）。
+- **修复**：onerror 回退 HTML 引号转义（单引号嵌套 → `&quot;/&#39;`），回退头像不再破坏属性。
+- **回归验证**（playwright，`data/tmp/bugcheck_cryptodog.py`）：14/15 PASS，
+  唯一 FAIL 为验收脚本自身选择器笔误（徽章实际渲染 6 处，复测通过）。
+  修复后实测：141 个头像全部 ≤48px（max 26×26）、333 行行高 44-49px 均匀、
+  无横向溢出、无 pageerror、🔥 徽章与 signalMarks（11 键）链路正常。
+
 ## [1.2.0] - 2026-09-14
 
 规格落地 `memory/design_copytrade_site.md` §16 / §19 / §20（前端与数据打通）。
