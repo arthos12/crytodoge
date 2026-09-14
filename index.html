@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CryptoDog 加密狗 · 合约与 MEME 跟单</title>
+<title>CryptoDog 加密狗 · 合约与 MEME</title>
 <link rel="icon" href="/assets/cryptodog-logo.svg" type="image/svg+xml" />
 <style>
   /* ===== 设计 token 直接抄仪表盘 Design System v2.1（docs/design-system.html），保证视觉一致 ===== */
   :root, :root[data-theme="dark"] {
-    --bg-base: #0f1419; --bg-card: #1a2029; --bg-hover: #242833; --border: #2a3441;
-    --text-primary: #e6edf3; --text-secondary: #abbbc7; --text-dim: #8b98a5;
+    --bg-base: #16130f; --bg-card: #201c16; --bg-hover: #2a241c; --border: #3a322a;
+    --text-primary: #f2ede4; --text-secondary: #c8bfb1; --text-dim: #998f7f;
     --accent-blue: #3b82f6; --accent-green: #22c55e; --accent-red: #ef4444;
     --accent-purple: #a855f7; --accent-yellow: #eab308;
     --accent-blue-bg: rgba(59,130,246,0.15); --accent-green-bg: rgba(34,197,94,0.20);
@@ -19,18 +19,20 @@
     --grad-primary: linear-gradient(135deg,#3b82f6,#8b5cf6);
     --up: var(--accent-red); --down: var(--accent-green);
     --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px; --radius-xl: 12px;
-    --header-bg: rgba(15,20,25,0.85);
+    --header-bg: rgba(22,19,15,0.88);
+    --nav-line-futures: #818cf8; --nav-line-meme: #f2a65a;
   }
   :root[data-theme="light"] {
-    --bg-base: #edf2f6; --bg-card: #ffffff; --bg-hover: #e9eef4; --border: #d5dce6;
-    --text-primary: #1a2029; --text-secondary: #5a728a; --text-dim: #728aa0;
+    --bg-base: #f6f2ea; --bg-card: #ffffff; --bg-hover: #efe9dc; --border: #ddd5c4;
+    --text-primary: #26201a; --text-secondary: #6d6455; --text-dim: #918775;
     --accent-blue: #3b82f6; --accent-green: #16a34a; --accent-red: #dc2626;
     --accent-purple: #9333ea; --accent-yellow: #ca8a04;
     --accent-blue-bg: rgba(59,130,246,0.12); --accent-green-bg: rgba(22,163,74,0.12);
     --accent-purple-bg: rgba(147,51,234,0.12); --accent-red-bg: rgba(220,38,38,0.10);
     --accent-yellow-bg: rgba(202,138,4,0.12);
     --up: var(--accent-red); --down: var(--accent-green);
-    --header-bg: rgba(255,255,255,0.80);
+    --header-bg: rgba(246,242,234,0.88);
+    --nav-line-futures: #6366f1; --nav-line-meme: #d97c22;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Inter',-apple-system,'SF Pro Display','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
@@ -44,15 +46,21 @@
 
   /* ===== 顶部主导航 ===== */
   .topnav { position:sticky; top:0; z-index:20; background:var(--header-bg); backdrop-filter:blur(10px);
-            border-bottom:1px solid var(--border); padding:0 28px; height:58px; display:flex; align-items:center; gap:30px; }
+            border-bottom:1px solid var(--border);
+            padding:0 max(28px, calc((100% - 1320px)/2 + 28px)); height:58px; display:flex; align-items:center; gap:30px; }
   .logo { display:flex; align-items:center; gap:10px; }
   .logo .mark { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
   .logo .name { font-size:17px; font-weight:800; letter-spacing:.5px; background:var(--grad-brand);
                 -webkit-background-clip:text; background-clip:text; color:transparent; }
   .nav-item { font-size:15px; font-weight:600; color:var(--text-dim); padding:17px 4px; position:relative; cursor:pointer;
-              background:none; border:none; }
+              background:none; border:none; --line:var(--nav-line-futures); }
+  .nav-item:hover { color:var(--text-secondary); }
   .nav-item.on { color:var(--text-primary); }
-  .nav-item.on::after { content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--grad-primary); border-radius:3px 3px 0 0; }
+  /* §16：业务线身份色短棒（居中 26px，禁渐变禁通栏） */
+  .nav-item.on::after { content:''; position:absolute; left:50%; transform:translateX(-50%); bottom:0;
+    width:26px; height:3px; background:var(--line); border-radius:3px 3px 0 0; }
+  .nav-item[data-line="meme"] { --line:var(--nav-line-meme); }
+  .nav-item.on .hint { color:var(--line); }
   .nav-item .hint { font-size:10px; color:var(--text-dim); font-weight:400; display:block; letter-spacing:.5px; margin-top:1px; }
   .nav-right { margin-left:auto; display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-secondary); }
   /* 站点版本徽标：静态值 = VERSION 文件回退值，启动后由 /api/health 覆盖（单一事实来源） */
@@ -62,10 +70,13 @@
   .icon-btn:hover { color:var(--text-primary); border-color:var(--accent-blue); }
 
   /* ===== 二级导航 ===== */
-  .subnav { display:flex; align-items:center; gap:6px; padding:12px 28px 0; flex-wrap:wrap; }
+  .subnav { display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  max-width:1320px; margin:0 auto; width:100%; box-sizing:border-box;
+  padding:12px 28px 0; }
   .sub-tab { padding:8px 18px; border-radius:10px 10px 0 0; font-size:13px; font-weight:600; color:var(--text-dim);
              background:transparent; border:1px solid transparent; border-bottom:none; }
-  .sub-tab.on { color:var(--text-primary); background:var(--bg-card); border-color:var(--border); }
+  .sub-tab.on { color:var(--text-primary); background:var(--bg-card); border-color:var(--border);
+                box-shadow:inset 0 2px 0 var(--subnav-line, var(--nav-line-futures)); }
   .sub-tab.sm { padding:4px 12px; border-radius:99px; border:1px solid var(--border); font-size:12px; }
   .sub-tab.sm.on { background:var(--accent-blue-bg); border-color:var(--accent-blue); color:var(--accent-blue); }
   .sub-note { margin-left:auto; font-size:11px; color:var(--text-dim); }
@@ -94,7 +105,7 @@
   .trow.warn { background:var(--accent-yellow-bg); }
   .tbl-title { font-size:12px; color:var(--text-dim); padding:10px 14px; border-bottom:1px solid var(--border);
                background:var(--bg-hover); letter-spacing:.5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .ava { border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; flex-shrink:0; }
+  .ava { border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; flex-shrink:0; object-fit:cover; }
   .badge { font-size:9px; font-weight:700; border-radius:4px; padding:2px 6px; white-space:nowrap; }
   .badge.bn { background:rgba(245,158,11,.15); color:#f59e0b; }
   .badge.ok { background:var(--accent-blue-bg); color:var(--accent-blue); }
@@ -183,7 +194,7 @@
     <div class="name">CryptoDog</div>
   </div>
   <button class="nav-item on" id="nav-c" onclick="navTo('c')">合约<span class="hint">合约监控 · 合约跟单</span></button>
-  <button class="nav-item" id="nav-m" onclick="navTo('m')">MEME<span class="hint">KOL 资产 · 跟单</span></button>
+  <button class="nav-item" id="nav-m" data-line="meme" onclick="navTo('m')">MEME<span class="hint">KOL 资产 · 管理</span></button>
   <div class="nav-right">
     <span class="ver-chip" id="ver-chip" title="站点版本（与仓库 git tag 同名）">v1.0.0</span>
     <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="切换深色/浅色">🌙</button>
@@ -221,12 +232,11 @@ const state = {
   copyModal: null, presetSaved: null,
   // MEME 线
   kols: [], assets: null,
-  kolFilter: 'all', sideFilter: 'all', tradesView: 'pair',
+  kolFilter: 'all', sideFilter: 'all', tradesView: 'flow',   // §20.4：流水为默认视图
   expanded: {},                 // 持仓行展开
   editKol: null,
-  // 信号驱动（规格 §3.1b ②③④，2026-09-12 16:56 改版）
-  signals: null, signalsFor: null, signalsBusy: false,
-  holdingsOpen: false,          // 完整持仓明细默认收起
+  // 信号驱动（规格 §20：AI 分析卡 + 资产主表标记徽章）
+  signals: null, signalsFor: null, signalsBusy: false, signalMarks: {},
 };
 
 /* ---------------- 主题 ---------------- */
@@ -360,7 +370,7 @@ function copySticker(contract) {
    ========================================================================= */
 const LINES = {
   c: [['futures/monitor', '📊 合约监控'], ['futures/copy', '📑 合约跟单']],
-  m: [['meme/assets', '💰 资产与交易'], ['meme/kol', '👤 KOL 管理'], ['meme/copy', '⚡ MEME 跟单']],
+  m: [['meme/assets', '💰 资产与交易'], ['meme/kol', '👤 KOL 管理']],   // §19：跟单 tab 已移除
 };
 function navTo(line, view) {
   state.line = line;
@@ -382,7 +392,7 @@ function syncFromHash() {
 
 const SUB_NOTE = {
   c: '⚠ 跟单执行属高危操作：v1 默认推送确认，自动模式需单独开启且服务端强制风控',
-  m: '⚠ 自动跟单总开关默认关闭；跟单执行 v1 一律只记录不执行',
+  m: '',
 };
 
 function renderSubnav() {
@@ -390,13 +400,17 @@ function renderSubnav() {
     `<button class="sub-tab ${state.view === v ? 'on' : ''}" onclick="setView('${v}')">${l}</button>`).join('');
   document.getElementById('subnav').innerHTML = tabs + `<span class="sub-note">${SUB_NOTE[state.line]}</span>`;
 }
+// §16：二级 Tab 顶部细条随业务线切换身份色
+function applySubnavLine() {
+  const el = document.getElementById('subnav');
+  if (el) el.style.setProperty('--subnav-line', state.line === 'm' ? 'var(--nav-line-meme)' : 'var(--nav-line-futures)');
+}
 
 const RENDERERS = {
   'futures/monitor': renderFuturesMonitor,
   'futures/copy': renderFuturesCopy,
   'meme/assets': renderMemeAssets,
   'meme/kol': renderMemeKol,
-  'meme/copy': renderMemeCopy,
 };
 
 async function render() {
@@ -404,6 +418,7 @@ async function render() {
   document.getElementById('nav-c').classList.toggle('on', state.line === 'c');
   document.getElementById('nav-m').classList.toggle('on', state.line === 'm');
   renderSubnav();
+  applySubnavLine();
   await refreshKillBtn();
   const el = document.getElementById('content');
   el.innerHTML = '<div class="empty">加载中…</div>';
@@ -742,12 +757,8 @@ async function loadAssets(force) {
 }
 
 /* =========================================================================
-   信号驱动（规格 §3.1b ②③④ · 2026-09-12 16:56 用户改版）
-   替代原「指标卡 + 概览卡」静态统计：改为
-     ② 🤖 AI 重点关注分析（置顶核心）
-     ③ 🔥 近期多次买入 / 💰 大额买入 / ⏳ 早期埋伏 三组信号表
-     ④ 完整持仓明细降级为次要卡、默认收起
-   三类信号与研判理由全部由后端基于真实交易流统计（signals.py）。
+   信号驱动（规格 §20：AI 分析卡 + 资产主表标记徽章，三张独立信号表已废弃）
+   统计与研判理由全部由后端基于真实交易流计算（signals.py）。
    ========================================================================= */
 async function loadSignals(kol, force) {
   if (!kol || kol === 'all') { state.signals = null; state.signalsFor = null; return; }
@@ -802,6 +813,33 @@ function tokenCell(sym, platform, contract, logo) {
   </div>`;
 }
 
+function signalBadge(sym, wallet) {
+  const m = state.signalMarks && state.signalMarks[(sym || '') + '|' + (wallet || '')];
+  if (!m) return '';
+  let b = '';
+  if (m.repeat) b += '<span title="多次买入：近 7 天同币 ≥2 笔买入" style="color:var(--up);font-size:11px;font-weight:700;margin-left:2px;">&#128293;</span>';
+  if (m.large) b += '<span title="大额买入：单笔 ≥$5K 或 ≥ 均单 3 倍" style="color:var(--accent-blue);font-size:11px;font-weight:700;margin-left:2px;">&#128176;</span>';
+  if (m.early) b += '<span title="早期埋伏：首买 >14 天未明显减仓" style="color:var(--accent-green);font-size:11px;font-weight:700;margin-left:2px;">&#9203;</span>';
+  return b;
+}
+
+// §20：把三类信号统计转成「代币 → 标记」映射，供资产主表与交易明细行内徽章使用
+function buildSignalMarks(kolName) {
+  const marks = {};
+  const s = state.signals;
+  if (!s || s.error || !kolName || kolName === 'all') { state.signalMarks = marks; return; }
+  const sig = s.signals || {};
+  const put = (list, key) => (list || []).forEach(x => {
+    const k = (x.symbol || '') + '|' + kolName;
+    if (!marks[k]) marks[k] = {};
+    marks[k][key] = true;
+  });
+  put(sig.repeat_buys, 'repeat');
+  put(sig.large_buys, 'large');
+  put(sig.early_positions, 'early');
+  state.signalMarks = marks;
+}
+
 function signalsHtml(kolName) {
   if (!kolName || kolName === 'all') {
     return `<div class="card" style="margin-bottom:12px;"><div class="empty">选择上方某个 KOL，查看 🤖 AI 重点关注分析与三类信号分组</div></div>`;
@@ -823,21 +861,21 @@ function signalsHtml(kolName) {
     ? '<span class="badge ok">规则统计 + LLM 研判</span>'
     : '<span class="badge dim">规则研判（未配置 LLM key）</span>';
 
-  // 空态要说明「为什么为空」：优先用后端给出的**有据可依**原因
+  // 空态要说明「为什么为空」：优先用后端给出的**有据可依**原因（并入 AI 卡 legend，§20 无独立信号表）
   // （2026-09-12 实测：三个 KOL 钱包完整链上历史仅 0.1–2.2 天且已翻到最早一笔
   //  → 早期埋伏为空属钱包本身历史长度限制，不是采集窗口没抓够；旧的"扩深历史需分页回溯"文案已不成立）
   const earlyDays = sig.config ? sig.config.early_days : 14;
-  const emptyEarly = scope.can_judge_early === false
+  const emptyEarlyNote = scope.can_judge_early === false
     ? (scope.early_empty_reason
         ? esc(scope.early_empty_reason)
-        : `采集窗口仅 ${winDays != null ? winDays : '—'} 天，不足判定「早期埋伏」（需 >${earlyDays} 天历史）。`)
-    : '没有符合条件的早期埋伏持仓';
+        : `⏳ 早期埋伏：采集窗口仅 ${winDays != null ? winDays : '—'} 天，不足判定（需 >${earlyDays} 天历史）`)
+    : '';
 
   // ② AI 重点关注分析
   const watchRows = wl.length ? wl.map(w => {
     const t = SIG_TIER[w.level] || SIG_TIER.watch;
     return `<div style="display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-left:3px solid ${t.bar};border-radius:9px;padding:10px 12px;background:var(--bg-base);">
-      ${tokenLogoHtml(w.logo, w.symbol, 'ava')}
+      ${tokenLogoHtml(w.logo, w.symbol, 'ava', 26)}
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <b style="font-size:14px;">$${esc(w.symbol || '?')}</b>
@@ -849,14 +887,13 @@ function signalsHtml(kolName) {
         <div class="dim" style="font-size:12px;line-height:1.55;margin-top:4px;">${esc(w.reason)}</div>
         <div class="dim" style="font-size:11px;margin-top:3px;">⚠ ${esc(w.advice)}</div>
       </div>
-      <button class="btn-primary" style="padding:5px 12px;font-size:11px;flex-shrink:0;"
-        onclick="gotoMemeCopy('${esc(kolName)}')">⚡ 跟单</button>
+      
     </div>`;
   }).join('') : `<div class="empty">该 KOL 暂无可研判的代币（交易流为空或全部无买入记录）</div>`;
 
   const aiCard = `
   <div class="card" style="margin-bottom:12px;border:1px solid rgba(99,102,241,.45);">
-    <div class="tbl-title">🤖 AI 重点关注分析
+    <div class="tbl-title">③ 🤖 AI 重点关注分析
       <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">
         基于全部交易流自动统计 · ${esc(String(s.generated_at || '').replace('T', ' ').slice(5, 16))} 生成 · 共 ${s.watchlist_total || wl.length} 个有买入记录的代币</span>
       <span style="margin-left:8px;">${srcTag}</span>
@@ -865,61 +902,15 @@ function signalsHtml(kolName) {
     </div>
     <div style="padding:12px 14px;display:grid;gap:10px;">${watchRows}</div>
     <div class="legend"><span>研判 = 规则统计（可解释，理由均引用具体数字）${s.llm ? ' + LLM 综合研判' : ''}</span>
-      <span>${scopeNote}${scope.can_judge_early === false ? ' · ⚠ 不足判定早期埋伏' : ''}</span>
-      <span style="margin-left:auto;">分级：🔥 强 / 👀 中 / ⚪ 观望</span></div>
+      <span>${scopeNote}</span>
+      ${emptyEarlyNote ? `<span>${emptyEarlyNote}</span>` : ''}
+      <span>标记：🔥 多次买入（近 7 天 ≥2 笔）/ 💰 大额买入（≥$5K 或均单 3 倍）/ ⏳ 早期埋伏（首买 >14 天）</span>
+      <span style="margin-left:auto;">分级：重点关注·强 / 重点关注·中 / 观望</span></div>
   </div>`;
 
-  // ③ 三组信号表
-  const rep = sig.repeat_buys || [], big = sig.large_buys || [], early = sig.early_positions || [];
-  const head = (cols, cells) => `<div class="thead" style="grid-template-columns:${cols};">${cells}</div>`;
-
-  const repeatCard = `
-  <div class="card" style="margin-bottom:12px;">
-    <div class="tbl-title">🔥 近期多次买入（加仓中 · 近 ${sig.config ? sig.config.repeat_days : 7} 天 ≥2 笔）
-      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">按加仓金额排序</span>
-      <span style="margin-left:auto;font-size:11px;">${rep.length} 个代币</span></div>
-    ${head('1.3fr .7fr .8fr .8fr .7fr .8fr', '<span>代币</span><span class="r">买入笔数</span><span class="r">近 7 日买入</span><span class="r">建仓总额</span><span class="r">浮盈</span><span class="r">最近买入</span>')}
-    ${rep.length ? rep.map(r => `<div class="trow" style="grid-template-columns:1.3fr .7fr .8fr .8fr .7fr .8fr;">
-        ${tokenCell(r.symbol, r.platform, r.contract, r.logo)}
-        <span class="r mono pos" style="font-weight:700;">${r.recent_buy_count} 笔 ↑</span>
-        <span class="r mono" style="font-weight:700;">${fmtUsd(r.recent_buy_usd)}</span>
-        <span class="r mono">${fmtUsd(r.total_buy_usd)}</span>
-        <span class="r mono ${pnlCls(r.roi_pct)}">${r.roi_pct != null ? fmtPct(r.roi_pct, 1) : '—'}</span>
-        <span class="r mono dim" style="font-size:12px;">${sigAgo(r.recent_last_time)}</span>
-      </div>`).join('') : '<div class="empty">近期没有同币多次买入</div>'}
-  </div>`;
-
-  const largeCard = `
-  <div class="card" style="margin-bottom:12px;">
-    <div class="tbl-title">💰 大额买入（单笔 ≥ $${(sig.config ? sig.config.large_usd_floor : 5000).toLocaleString()} 或 ≥ 均单 ${sig.config ? sig.config.large_multiple : 3} 倍）
-      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">阈值可在 data/signal_config.json 调整</span>
-      <span style="margin-left:auto;font-size:11px;">${big.length} 笔</span></div>
-    ${head('1.3fr .8fr .8fr 1fr .8fr', '<span>代币</span><span class="r">单笔金额</span><span class="r">vs 均单</span><span class="r">时点 · 当时市值</span><span class="r">当前浮盈</span>')}
-    ${big.length ? big.map(b => `<div class="trow" style="grid-template-columns:1.3fr .8fr .8fr 1fr .8fr;">
-        ${tokenCell(b.symbol, b.platform, b.contract, b.logo)}
-        <span class="r mono pos" style="font-weight:700;">${fmtUsd(b.single_usd)}</span>
-        <span class="r mono">${b.multiple_vs_avg != null ? b.multiple_vs_avg + '×' : '—'}</span>
-        <span class="r mono dim" style="font-size:12px;">${esc(String(b.time || '').replace('T', ' ').slice(5, 10))}${b.mcap_at_time ? ' · ' + fmtMcap(b.mcap_at_time) : ''}</span>
-        <span class="r mono ${pnlCls(b.roi_pct)}">${b.roi_pct != null ? fmtPct(b.roi_pct, 1) : '—'}</span>
-      </div>`).join('') : '<div class="empty">没有达到大额阈值的单笔买入</div>'}
-  </div>`;
-
-  const earlyCard = `
-  <div class="card" style="margin-bottom:12px;">
-    <div class="tbl-title">⏳ 早期埋伏（首买 > ${sig.config ? sig.config.early_days : 14} 天 · 仍未明显减仓）
-      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">按持有天数排序</span>
-      <span style="margin-left:auto;font-size:11px;">${early.length} 个代币</span></div>
-    ${head('1.3fr .7fr .8fr .8fr .9fr', '<span>代币</span><span class="r">持有天数</span><span class="r">累计买入</span><span class="r">已卖出占比</span><span class="r">当前浮盈</span>')}
-    ${early.length ? early.map(e => `<div class="trow" style="grid-template-columns:1.3fr .7fr .8fr .8fr .9fr;">
-        ${tokenCell(e.symbol, e.platform, e.contract, e.logo)}
-        <span class="r mono" style="font-weight:700;">${e.hold_days} 天</span>
-        <span class="r mono">${fmtUsd(e.total_buy_usd)}</span>
-        <span class="r mono" style="color:${e.take_profit ? '#f59e0b' : 'inherit'};">${e.sold_pct}%${e.take_profit ? '（止盈中）' : ''}</span>
-        <span class="r mono ${pnlCls(e.roi_pct)}">${e.roi_pct != null ? fmtPct(e.roi_pct, 1) : '—'}</span>
-      </div>`).join('') : `<div class="empty">${emptyEarly}</div>`}
-  </div>`;
-
-  return aiCard + repeatCard + largeCard + earlyCard;
+  // §20：三张独立信号表已删除 —— 信息由资产主表标记徽章（signalBadge）+ AI 分析卡承载。
+  // 早期埋伏为空的原因说明并入 AI 卡 legend（scopeNote 已带「⚠ 不足判定早期埋伏」）。
+  return aiCard;
 }
 async function renderMemeAssets(el) {
   await Promise.all([loadKols(), loadAssets()]);
@@ -962,25 +953,29 @@ async function renderMemeAssets(el) {
       <div><div class="dim" style="font-size:11px;">总盈亏</div>
         <div class="mono ${pnlCls(kol.pnl_usd)}" style="font-size:16px;font-weight:700;">${fmtSignedUsd(kol.pnl_usd)}
           <span style="font-size:12px;">(${fmtPct(kol.roi_pct, 1)})</span></div></div>
-      <button class="btn-primary" style="padding:7px 16px;" onclick="gotoMemeCopy('${esc(kol.wallet)}')">⚡ 跟单此人</button>
-    </div>
+          </div>
   </div>` : '';
 
   const overview = '';   // 概览卡已废弃（2026-09-12 16:56 用户改版：静态统计没必要）
 
-  // 持仓代币表
-  const posRows = (a.positions || []).filter(p => !name || p.wallet === name).slice(0, 120);
+  // §20（2026-09-12 21:25 用户改版）：KOL 资产列表升级为主表 —— 全量罗列、不再默认收起、
+  // 不截断 120 行；🔥💰⏳ 标记徽章由后端信号统计打标（buildSignalMarks → signalBadge）。
+  buildSignalMarks(name);
+  const posRows = (a.positions || []).filter(p => !name || p.wallet === name)
+    .sort((x, y) => (Number(y.value_usd) || 0) - (Number(x.value_usd) || 0));
   const posHtml = posRows.length ? posRows.map(p => {
     const key = p.wallet + '|' + (p.contract || p.symbol);
     const open = !!state.expanded[key];
-    const hist = trades.filter(t => t.wallet === p.wallet && (t.contract || t.symbol) === (p.contract || p.symbol)).slice(0, 8);
+    const hist = trades.filter(t => t.wallet === p.wallet && (t.contract || t.symbol) === (p.contract || p.symbol))
+      .sort((x, y) => (Date.parse(y.time) || 0) - (Date.parse(x.time) || 0)).slice(0, 8);
     return `
     <div class="trow" style="grid-template-columns:1.4fr .8fr .8fr .8fr .9fr .8fr;cursor:pointer;" onclick="state.expanded['${esc(key)}']=!state.expanded['${esc(key)}'];render()">
       <div style="display:flex;align-items:center;gap:7px;min-width:0;">
-        ${tokenLogoHtml(p.logo, p.symbol, 'ava')}
+        ${tokenLogoHtml(p.logo, p.symbol, 'ava', 26)}
         <b style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">$${esc(p.symbol || p.name || '?')}</b>
         ${platformBadge(p.platform, true)}
         ${copySticker(p.contract)}
+        ${signalBadge(p.symbol, p.wallet)}
       </div>
       <span class="r mono">${fmtAmount(p.balance)}</span>
       <span class="r mono">${p.buy_usd_known === false ? '—' : fmtUsd(p.buy_usd)}</span>
@@ -993,7 +988,7 @@ async function renderMemeAssets(el) {
         交易历史 · ${esc(p.symbol || '')}（${hist.length} 笔 · 买 ${p.buy_count || 0} / 卖 ${p.sell_count || 0}）</div>
       ${hist.length ? hist.map(x => `<div class="dim mono" style="font-size:12px;display:grid;grid-template-columns:.9fr .5fr 1fr .8fr 1fr;gap:4px;margin-top:3px;">
         <span>${esc(String(x.time || '').replace('T', ' ').slice(5, 16))}</span>
-        <span class="${x.side === 'buy' ? 'pos' : (x.side === 'sell' ? 'neg' : '')}">${x.side === 'buy' ? '买入' : x.side === 'sell' ? '卖出' : x.side === 'in' ? '转入' : x.side === 'out' ? '转出' : '—'}</span>
+        <span class="${x.side === 'buy' ? 'pos' : (x.side === 'sell' ? 'neg' : '')}">${x.side === 'buy' ? '买入' : x.side === 'sell' ? '卖出' : '—'}</span>
         <span>${x.usd != null ? fmtUsd(x.usd) : (x.price_usd != null && x.amount != null ? '≈' + fmtUsd(Math.abs(x.price_usd * x.amount)) : '—')}</span>
         <span>${fmtAmount(x.amount != null ? Math.abs(x.amount) : null)} 枚</span>
         <a href="${esc(x.explorer_url || '#')}" target="_blank" style="color:var(--accent-blue);" onclick="event.stopPropagation();">${esc(String(x.hash || '').slice(0, 8))}… ↗</a>
@@ -1008,22 +1003,18 @@ async function renderMemeAssets(el) {
     <button class="sub-tab sm" style="margin-left:auto;" onclick="setView('meme/kol')">👤 管理 KOL（增删改）→</button>
   </div>
   ${pendingAddr ? `<div class="card"><div class="notice warn">${esc(name)} 已登记 FOMO 主页（${esc(profileHandle((regKol || {}).profile_url) || '—')}），等待 Solana 地址补填后开始链上采集。<button class="icon-btn" style="margin-left:8px;" onclick="setView('meme/kol')">去补地址</button></div></div>` : ''}
-  ${kolHeader}${signalsHtml(state.kolFilter === 'all' ? null : state.kolFilter)}
-  <div class="card">
-    <div class="tbl-title" style="cursor:pointer;" onclick="state.holdingsOpen=!state.holdingsOpen;render()">
-      <span style="transition:transform .15s;display:inline-block;transform:rotate(${state.holdingsOpen ? 90 : 0}deg);">▶</span>
-      完整持仓明细
-      <span class="dim" style="font-size:11px;font-weight:400;margin-left:10px;">次要信息 · 默认收起（${(a.positions || []).filter(p => !name || p.wallet === name).length} 行）</span>
-      <span style="margin-left:auto;font-size:11px;">配色/字号与仪表盘「加密货币 · 追踪」一致（Design System v2.1）</span>
-    </div>
-    ${state.holdingsOpen ? `
+  ${kolHeader}
+  <div class="card" style="margin-bottom:12px;">
+    <div class="tbl-title">② KOL 资产列表（${posRows.length} 个代币 · 按市值排序 · 点击行展开交易历史）
+      <span style="margin-left:auto;font-size:11px;" class="dim">🔥 多次买入 · 💰 大额买入 · ⏳ 早期埋伏</span></div>
     <div class="thead" style="grid-template-columns:1.4fr .8fr .8fr .8fr .9fr .8fr;">
       <span>代币 / 合约</span><span class="r">数量</span><span class="r">成本</span><span class="r">市值</span><span class="r">盈亏 / ROI</span><span class="r">首次买入</span>
     </div>
     ${posHtml}
-    <div class="legend"><span>💰 现金 = 稳定币余额</span><span>📋 复制合约地址</span>
-      <span style="margin-left:auto;">⚡ 跟单此人 = 快捷创建 MEME 跟单预设</span></div>` : ''}
+    <div class="legend"><span>💰 现金 = 稳定币余额 · 📋 复制合约地址</span>
+      <span style="margin-left:auto;">标记徽章由后端信号统计自动打标（选单个 KOL 时显示）</span></div>
   </div>
+  ${signalsHtml(state.kolFilter === 'all' ? null : state.kolFilter)}
   ${renderTradesV2(trades, name, kol)}`;
 }
 
@@ -1076,7 +1067,8 @@ function buildTradePairs(rows) {
   }).sort((a, b) => b.lastTs - a.lastTs);
 }
 function renderTradesV2(trades, kolName, kol) {
-  const scoped = trades.filter(x => !kolName || x.wallet === kolName);
+  // §20.3：只入库买卖 —— 充提/转账/无符号记录不展示，统计口径同样只基于买卖
+  const scoped = trades.filter(x => (!kolName || x.wallet === kolName) && (x.side === 'buy' || x.side === 'sell'));
   const side = state.sideFilter;
   const view = state.tradesView;
   const buyCnt = scoped.filter(x => x.side === 'buy').length;
@@ -1100,7 +1092,7 @@ function renderTradesV2(trades, kolName, kol) {
 
   let body;
   if (view === 'flow') {
-    const list = side === 'all' ? scoped : scoped.filter(x => x.side === side);
+    const list = side === 'all' ? scoped : scoped.filter(x => x.side === side);   // scoped 已只含买卖（§20.3）
     const fcols = '96px 140px 56px 1.4fr 1fr 100px 0.8fr 88px';
     body = list.length ? `
       <div style="overflow-x:auto;"><div style="min-width:980px;">
@@ -1113,7 +1105,7 @@ function renderTradesV2(trades, kolName, kol) {
             <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(x.wallet)}</span></div>
           <span class="c">${tradeSideChip(x.side)}</span>
           <div style="display:flex;align-items:center;gap:6px;min-width:0;">
-            <span style="font-size:15px;font-weight:700;">${esc(x.symbol || x.token || '—')}</span>${copySticker(x.contract)}</div>
+            <span style="font-size:15px;font-weight:700;">${esc(x.symbol || x.token || '—')}</span>${signalBadge(x.symbol, x.wallet)}${copySticker(x.contract)}</div>
           <span class="r">${qtyCell(x)}</span><span class="r">${usdCell(x)}</span>
           <span class="r dim" style="font-size:12px;">${esc(x.method || x.platform || '—')}</span>
           ${hashCell(x, 'r')}
@@ -1141,7 +1133,7 @@ function renderTradesV2(trades, kolName, kol) {
       return `
       <div class="group">
         <div class="g-head">
-          ${tokenLogoHtml(null, g.symbol, 'ava')}
+          ${tokenLogoHtml(null, g.symbol, 'ava', 22)}
           <b style="font-size:15px;">$${esc(g.symbol)}</b>${copySticker(g.contract)}
           <span class="dim" style="font-size:11px;">${g.mcap ? '市值 ' + fmtUsd(g.mcap) : ''}${g.name && g.name !== g.symbol ? ' · ' + esc(g.name) : ''}</span>
           <span style="margin-left:auto;display:flex;align-items:center;gap:6px;">
@@ -1164,10 +1156,10 @@ function renderTradesV2(trades, kolName, kol) {
 
   return `
   <div class="card" style="margin-top:12px;">
-    <div class="tbl-title">交易记录（${kolName ? esc(kolName) : '全部 KOL'} · 最近 ${scoped.length} 笔）
+    <div class="tbl-title">④ 交易记录（${kolName ? esc(kolName) : '全部 KOL'} · 最近 ${scoped.length} 笔 · 只含买卖）
       <span style="margin-left:auto;display:flex;gap:6px;">
-        ${chip(view === 'pair', '🧩 买卖配对', "state.tradesView='pair';render()")}
         ${chip(view === 'flow', '📜 流水', "state.tradesView='flow';render()")}
+        ${chip(view === 'pair', '🧩 买卖配对', "state.tradesView='pair';render()")}
       </span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 14px;">
       <div class="kpi-cell"><div class="dim" style="font-size:11px;">交易笔数</div>
@@ -1331,105 +1323,11 @@ async function syncKol(name) {
   } catch (e) { toast('同步失败：' + esc(e.message), 'err'); }
 }
 
-/* =========================================================================
-   MEME 线 · MEME 跟单
-   ========================================================================= */
-function gotoMemeCopy(name) {
-  state.kolFilter = name;
-  setView('meme/copy');
-}
-async function renderMemeCopy(el) {
-  await Promise.all([loadKols(), loadAssets()]);
-  const cards = state.kols.map(k => {
-    const live = (state.assets.kols || []).find(x => x.wallet === k.name) || {};
-    const pending = !k.has_address;
-    return `
-    <div class="card kol-card">
-      <div class="head">
-        ${ava(k.name, 34, k.platform)}
-        <div style="min-width:0;">
-          <div class="name">${esc(k.name)} ${platformBadge(k.platform)}</div>
-          <div class="dim mono" style="font-size:11px;">${pending ? '地址待补 · 主页已登记' : esc(shortAddr(k.address))}</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
-        ${pending ? '<span class="dim" style="font-size:15px;">待采集</span>'
-                  : `<span class="roi mono ${pnlCls(live.pnl_usd)}">${fmtSignedUsd(live.pnl_usd)}</span>
-                     <span class="dim" style="font-size:11px;">总盈亏${live.roi_pct != null ? ' (' + fmtPct(live.roi_pct, 1) + ')' : ''}</span>`}
-      </div>
-      <div class="kol-metrics">
-        <div><div class="lb">持仓市值</div><div class="vl mono ${pending ? 'dim' : ''}">${pending ? '—' : fmtUsd(live.value_usd)}</div></div>
-        <div><div class="lb">持仓数</div><div class="vl mono ${pending ? 'dim' : ''}">${pending ? '—' : (live.token_count || 0)}</div></div>
-        <div><div class="lb">地址</div><div class="vl" style="font-size:12px;color:${pending ? 'var(--accent-yellow)' : 'var(--text-secondary)'};">${pending ? '待补' : '已采集'}</div></div>
-      </div>
-      <div class="kol-foot"><span class="dim" style="font-size:11px;">${pending ? '补地址后开放跟单' : '数据源：链上钱包追踪'}</span>
-        ${pending
-          ? `<button class="btn-ghost" style="margin-left:auto;" disabled title="地址待补，采集与跟单均不可用">不可用</button>`
-          : `<button class="btn-primary" style="margin-left:auto;" onclick="openMemePreset('${esc(k.name)}')">+ 跟单</button>`}
-      </div>
-    </div>`;
-  }).join('');
-
-  const L = (state.limits && state.limits.meme) || { max_order_sol: 2, max_daily_orders: 10, max_daily_sol: 5, max_slippage_pct: 10, min_stop_loss_pct: -50 };
-  const state_ = state.copyState || {};
-  const log = await api('/api/copy/log');
-  const recs = (log.records || []).filter(r => r.kind === 'meme');
-
-  el.innerHTML = `
-  <div class="kol-grid">${cards || '<div class="card"><div class="empty">还没有监控的 KOL，先去「KOL 管理」添加。</div></div>'}</div>
-
-  <div class="card" style="margin-bottom:12px;">
-    <div class="tbl-title">MEME 跟单配置（自动跟单预设）· 风控由服务端强制
-      <span style="margin-left:auto;color:var(--accent-yellow);">服务端上限：单笔 ≤ ${L.max_order_sol} SOL · 每日 ≤ ${L.max_daily_sol} SOL / ${L.max_daily_orders} 笔 · 滑点 ≤ ${L.max_slippage_pct}%</span></div>
-    <div class="form-grid">
-      <div><label>跟单对象</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${state.kols.map(k => `<button class="pill ${state.kolFilter === k.name ? 'on' : ''}" onclick="state.kolFilter='${esc(k.name)}';render()">${esc(k.name)}</button>`).join('')}
-          <button class="pill ${state.kolFilter === 'all' ? 'on' : ''}" onclick="state.kolFilter='all';render()">全部 KOL</button>
-        </div></div>
-      <div><label>单笔跟单金额 (SOL)</label><input class="inp mono" id="m-order" value="0.5" /></div>
-      <div><label>每日跟单笔数上限</label><input class="inp mono" id="m-orders" value="5" /></div>
-      <div><label>每日金额上限 (SOL)</label><input class="inp mono" id="m-daily" value="3" /></div>
-      <div><label>买入滑点上限</label><input class="inp mono" id="m-slip" value="3" /></div>
-      <div><label>止损线 (%)</label><input class="inp mono" id="m-stop" value="-30" /></div>
-      <div><label>止盈策略</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="pill on" data-mtp="follow" onclick="pickPill(this,'mtp')">跟随卖出</button>
-          <button class="pill" data-mtp="half" onclick="pickPill(this,'mtp')">+50% 出一半</button>
-          <button class="pill" data-mtp="roi" onclick="pickPill(this,'mtp')">固定 ROI</button>
-        </div></div>
-      <div class="full"><label>黑名单（不跟的代币/合约，逗号分隔）</label>
-        <input class="inp mono" id="m-black" placeholder="合约地址或代币符号" /></div>
-      <div class="full" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-        <span class="switch" title="v1 服务端恒为关闭"><span class="sw ${state_.auto_execute ? 'on' : ''} locked"></span>
-          启用自动跟单（服务端 v1 恒为关闭 = 仅推送提醒）</span>
-        <button class="btn-primary" style="margin-left:auto;padding:9px 26px;" onclick="savePreset('meme')">保存预设</button>
-      </div>
-    </div>
-    <div class="notice warn">总开关默认关闭且服务端不可开启：v1 未接入链上签名/交易所下单能力，跟单请求一律只留痕不执行。</div>
-  </div>
-
-  <div class="card">
-    <div class="tbl-title">我的跟单执行记录 · 触发 → 执行 → 结果 全链路可追溯</div>
-    <div class="thead" style="grid-template-columns:110px 140px 1.2fr 90px 1fr 150px 90px;">
-      <span>时间</span><span>触发来源</span><span>代币</span><span class="c">方向</span>
-      <span class="r">KOL 金额 → 跟单金额</span><span class="r">执行结果</span><span class="r">盈亏</span></div>
-    ${recs.length ? recs.map(r => `
-      <div class="trow" style="grid-template-columns:110px 140px 1.2fr 90px 1fr 150px 90px;">
-        <span class="mono dim" style="font-size:12px;">${esc((r.time || '').replace('T', ' ').slice(5, 16))}</span>
-        <span style="font-size:13px;">${esc(r.source || '—')} ${platformBadge(r.source_platform, true)}</span>
-        <span style="font-weight:600;">${esc(r.token || '—')}</span>
-        <span class="c">${tradeSideChip(r.direction === 'sell' ? 'sell' : 'buy')}</span>
-        <span class="r mono" style="font-size:12px;">${esc(String(r.kol_amount || '—'))} → <b>${esc(String(r.copy_amount || '—'))}</b></span>
-        <span class="r" style="font-size:12px;color:var(--accent-yellow);">⛔ 未执行（v1 只读）</span>
-        <span class="r mono dim">—</span>
-      </div>`).join('') : `<div class="empty">还没有跟单请求记录。任何执行请求都会在此留痕（v1 全部为「未执行」）。</div>`}
-  </div>`;
-}
-function openMemePreset(name) {
-  state.kolFilter = name;
-  render();
-  toast(`已选中跟单对象：${esc(name)} —— 在下方「MEME 跟单配置」里保存预设`, 'ok');
+async function loadVersion() {
+  try {
+    const h = await api('/api/health');
+    if (h && h.version) document.getElementById('ver-chip').textContent = 'v' + h.version;
+  } catch (e) { /* 后端未起时保留 HTML 里的静态版本号 */ }
 }
 
 /* =========================================================================
@@ -1458,13 +1356,9 @@ async function toggleKill() {
   } catch (e) { toast('操作失败：' + esc(e.message), 'err'); }
 }
 
-/* 站点版本：从后端 /api/health 读（单一事实来源 = VERSION 文件），失败保留静态回退值 */
-async function loadVersion() {
-  try {
-    const h = await api('/api/health');
-    if (h && h.version) document.getElementById('ver-chip').textContent = 'v' + h.version;
-  } catch (e) { /* 后端未起时保留 HTML 里的静态版本号 */ }
-}
+/* =========================================================================
+   MEME 线（§19：跟单视图已移除，只剩资产与交易 / KOL 管理）
+   ========================================================================= */
 
 /* =========================================================================
    启动
@@ -1478,6 +1372,8 @@ async function loadVersion() {
   loadVersion();
   window.addEventListener('hashchange', () => { syncFromHash(); render(); });
 })();
+
+
 </script>
 </body>
 </html>

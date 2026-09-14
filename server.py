@@ -45,7 +45,7 @@ INDEX_FILE = CRYPTODOG_ROOT / "index.html"
 VERSION_FILE = CRYPTODOG_ROOT / "VERSION"
 
 # 站点版本：单一事实来源 = VERSION 文件（与 git tag `vX.Y.Z`、CHANGELOG.md 首行同名）
-# 版本轴区分（勿混用）：① 站点版本（本文件，semver）② 规格版本（memory/design_copytrade_site.md §1-10）
+# 版本轴区分（勿混用）：① 站点版本（本文件，semver）② 规格版本（memory/design_copytrade_site.md §1-20）
 # ③ 数据 schema 版本（signals.py:SCHEMA，只管缓存失效）
 try:
     SITE_VERSION = VERSION_FILE.read_text(encoding="utf-8").strip() or "0.0.0-dev"
@@ -301,7 +301,7 @@ def health():
         "ok": True,
         "service": "cryptodog",
         "version": SITE_VERSION,                     # 站点版本（= VERSION 文件 = git tag）
-        "spec": "memory/design_copytrade_site.md §1-14",
+        "spec": "memory/design_copytrade_site.md §1-20",
         "port": PORT,
         "now": _now(),
         "data": {

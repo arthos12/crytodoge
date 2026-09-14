@@ -1,3 +1,20 @@
+## [1.2.0] - 2026-09-14
+
+规格落地 `memory/design_copytrade_site.md` §16 / §19 / §20（前端与数据打通）。
+
+- §16 导航：删除覆盖新短棒下划线的旧通栏渐变规则；副标身份色贯穿（`.sub-tab.on` 顶线 + `--subnav-line`）；nav-m 补 `data-line="meme"`
+- §19 移除 MEME 跟单：`LINES.m` 只剩 💰 资产与交易 / 👤 KOL 管理；`meme/copy`、跟单路由与副标文案清零
+- §20 资产与交易改版：
+  - 资产主表全量罗列持仓（去默认收起、去 120 行截断）
+  - 🔥 多次买入 / 💰 大额买入 / ⏳ 早期埋伏 徽章（`signalMarks` + `buildSignalMarks`）
+  - 修复半途残渣崩页：删除引用未定义 `rep/big/early` 的三张信号表（选中 KOL 即 ReferenceError）
+  - 交易明细默认流水视图；统计口径只含 buy/sell（充提/转账不展示不计入）
+  - 早期埋伏空态给出原因（KOL 钱包链上历史仅 0.1–2.2 天，数据源限制）
+- server.py：spec 标识更新 §1-20
+
+验收：node --check 通过；/api/meme/signals?kol=王小二 → watchlist=8, repeat_buys=11；
+/api/meme/assets → 560 positions / 3 kols / 300 trades（依赖 8000 投研后端在跑）。
+
 # 更新日志 · CryptoDog（加密狗）跟单站
 
 版本规范见 `README.md`「版本」节。**每次发版必须同步四处**：`VERSION` 文件 → `CHANGELOG.md` → `git tag vX.Y.Z` → `memory/cryptodog_versioning.md` 版本清单。
