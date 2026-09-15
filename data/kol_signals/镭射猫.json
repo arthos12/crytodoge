@@ -1,11 +1,11 @@
 {
- "schema": 2,
+ "schema": 3,
  "kol": "镭射猫",
- "generated_at": "2026-09-12T17:31:37.876347",
+ "generated_at": "2026-09-15T17:39:50.867452",
  "source": "rules",
  "source_note": "规则研判：由真实交易流统计生成，理由均引用具体数字（未配置 LLM key）",
  "signals": {
-  "generated_at": "2026-09-12T17:31:37.876197",
+  "generated_at": "2026-09-15T17:39:50.867215",
   "config": {
    "repeat_days": 7,
    "repeat_min_count": 2,
@@ -23,18 +23,37 @@
    "large": 0,
    "early": 0,
    "tokens": 0,
-   "trades": 27
+   "trades": 63
   },
   "data_scope": {
-   "trades": 27,
+   "trades": 63,
    "tokens": 0,
-   "first_trade": "2026-09-10T20:37:56",
-   "last_trade": "2026-09-12T15:27:46",
-   "window_days": 1.8,
+   "first_trade": "2026-09-12T19:19:41",
+   "last_trade": "2026-09-15T15:51:53",
+   "window_days": 2.9,
+   "wallet_span_days": null,
+   "wallet_first_tx": null,
+   "wallet_history_exhausted": false,
+   "history_source": "2026-09-15T07:43:35+08:00",
    "can_judge_early": false,
-   "note": "信号基于采集到的最近交易窗口计算（仪表盘 tracker 每轮只抓最近 N 笔，非全历史）；买入金额若交易流未带 USD，则用同刻稳定币流出腿配对估算（标 ≈）"
+   "early_empty_reason": "采集窗口仅 2.9 天，不足判定「首买 > 14 天」；链上历史回溯进行中（已解析 13 笔、尚未翻到头），每日 03:47 自动续翻后再判定",
+   "note": "信号基于采集到的最近交易窗口计算；若已跑 kol_history.py，则首买/累计买卖用**完整链上历史**校正（仓位与浮盈仍来自仪表盘实时持仓）；买入金额若交易流未带 USD，则用同刻稳定币流出腿配对估算（标 ≈）"
   }
  },
  "watchlist": [],
- "watchlist_total": 0
+ "watchlist_total": 0,
+ "history": {
+  "used": true,
+  "updated_at": "2026-09-15T07:43:35+08:00",
+  "mint_count": 2,
+  "window": {
+   "oldest_trade": null,
+   "newest_trade": null,
+   "span_days": null,
+   "pages_fetched": 0,
+   "tx_parsed": 13,
+   "exhausted": false
+  },
+  "source": "solana getSignaturesForAddress + getTransaction(jsonParsed)，并发单条（公共 RPC 禁 batch）"
+ }
 }

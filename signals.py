@@ -289,9 +289,23 @@ def compute_signals(trades: list, positions: list, cfg: dict | None = None,
         # ⭐ 有据可依的结论：已翻到该地址最早一笔 → 历史就这么多，不是采集没抓够
         early_note = (f"该 KOL 钱包链上历史共 {wallet_span} 天（已翻到最早一笔 {str(wallet_first)[:10]}），"
                       f"不足判定「首买 > {cfg['early_days']} 天」的早期埋伏——属钱包本身历史长度限制，非采集缺失")
+    elif wallet_exhausted:
+        # 2026-09-12 bot1_jim：exhausted=True 但 kol_history window 未填 span_days 时（镭射猫实测），
+        # 仍给「已翻到最早一笔」的结论，不能含糊说"回溯进行中"
+        _hp = ((history or {}).get("window") or {}).get("tx_parsed")
+        early_note = (f"该 KOL 钱包链上历史已翻到最早一笔（共解析 {_hp or '—'} 笔），"
+                      f"不足判定「首买 > {cfg['early_days']} 天」的早期埋伏——属钱包本身历史长度限制，非采集缺失")
     else:
-        early_note = (f"采集窗口仅 {window_days} 天，不足判定「首买 > {cfg['early_days']} 天」；"
-                      f"可运行 cryptodog/collectors/kol_history.py 回溯完整历史")
+        # 2026-09-12 bot1_jim：kol_history 已接日级 cron（cryptodog-kol-history-daily，每日 03:47），
+        # 不再让用户手动跑脚本——按回溯实际进度给话术（exhausted=True 走上方 elif 分支）
+        _hw = (history or {}).get("window") or {}
+        _parsed = _hw.get("tx_parsed")
+        if history and _parsed is not None:
+            early_note = (f"采集窗口仅 {window_days} 天，不足判定「首买 > {cfg['early_days']} 天」；"
+                          f"链上历史回溯进行中（已解析 {_parsed} 笔、尚未翻到头），每日 03:47 自动续翻后再判定")
+        else:
+            early_note = (f"采集窗口仅 {window_days} 天，不足判定「首买 > {cfg['early_days']} 天」；"
+                          f"链上历史每日 03:47 自动回溯（cryptodog-kol-history-daily），产出后自动校正")
 
     scope = {
         "trades": len(trades or []),
@@ -428,8 +442,7 @@ def build_review(name: str, trades: list, positions: list, cfg: dict | None = No
             "window": (history or {}).get("window"),
             "source": (history or {}).get("source"),
         } if history else {"used": False,
-                            "hint": "未跑 collect_history：首买/累计买卖仅覆盖最近交易窗口，"
-                                    "运行 cryptodog/collectors/kol_history.py 可回溯完整链上历史"}),
+                            "hint": "链上历史回溯（每日 03:47 自动）尚无本 KOL 数据：首买/累计买卖暂仅覆盖最近交易窗口"}),
     }
 
     llm = _llm_enhance(name, payload)

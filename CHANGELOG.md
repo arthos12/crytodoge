@@ -1,3 +1,20 @@
+## [1.2.2] - 2026-09-15
+
+空态文案修正 + 仓库卫生收口；首次同步推送 1.1.0 → 1.2.2 全部版本到 GitHub。
+
+- **修正**（`signals.py`，bot1_jim 09-12 改动本次入库）：「早期埋伏」空态三档化——
+  ① `exhausted=true` 但 window 未填 `span_days`（镭射猫实测场景）也给出
+  「已翻到最早一笔（共解析 N 笔），属钱包历史长度限制」的有据结论；
+  ② 回溯进行中显示实际进度（已解析笔数），不再笼统说"回溯中"；
+  ③ hint 文案去掉「手动运行 kol_history.py」——该回溯已接日级 cron
+  （cryptodog-kol-history-daily，每日 03:47 自动续翻）。
+- **仓库卫生**：`.gitignore` 加固——`_cron_status*.py`/`*_dhome.py`/`_selftest_*.py`
+  通配覆盖 C 盘诊断/自检脚本变体；新增忽略运行产物 `data/server.out.log`、`data/tmp/`。
+- **站内数据**：`data/kol_signals/*.json` 刷新（三 KOL）+ 新增 `monk.json`（MONK）。
+- **推送**：远端 `arthos12/crytodoge` 自 `v1.0.0`（`8c9a425`）一次性追平至 `v1.2.2`
+  （含 1.1.0 / 1.2.0 / 1.2.1 / 1.2.2 四版、5 个提交、5 个 tag）。
+  用户 2026-09-15 直接指示 Hermes 执行（此前 1.1.0 起"本地 tag 未 push"等待放行）。
+
 ## [1.2.1] - 2026-09-14
 
 修复「代币显示太大」+ 全面 BUG 回归。

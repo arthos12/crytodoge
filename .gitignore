@@ -15,7 +15,18 @@ data/copy_state.json
 data/verify/
 data/kol_history/
 
-# ── C 盘运维诊断脚本（读 hermes cron jobs.json）不该出现在公开仓库 ──
-# 见 memory/agent_dispatch.md R-4：归 Hermes，正式做法是移出仓库
+# ── C 盘运维诊断脚本（读 hermes cron / 注册表）不该出现在公开仓库 ──
+# 见 memory/agent_dispatch.md R-4 + H-9：归 Hermes，正式做法是移出仓库；
+# 用通配覆盖这个模式会反复出现的变体（_check_*.py / _cron_status*.py / *_dhome.py）。
 _check_*.py
-_cron_status.py
+_cron_status*.py
+*_dhome.py
+
+# ── 本地验收/自检脚本也不上传（H-9：只上传网站本体；脚本留在磁盘上可随时跑）──
+# 注：_verify_*.py 目前仍保留入库以便外人复现验收；若要严格"只传网站"，执行
+#     git rm --cached _verify_*.py _selftest_*.py
+_selftest_*.py
+
+# ── 服务器运行日志 / 临时抓取物（2026-09-15 Hermes 补）──
+data/server.out.log
+data/tmp/
